@@ -87,6 +87,10 @@ char_help = (
     ' - <save bonus> <check bonus>\n'
     ' - Example: \'!character update Urso bonus 1 2\'\n'
     '\n'
+    'Advantage Template:\n'
+    ' - [ability|skill] [ability|skill]...\n'
+    ' - Example: \'!character update Urso adv athletics\'\n'
+    '\n'
     'Full Template:\n'
     ' - <main_stats> | <saves> | <skills> | <expertises>\n'
     ' - Example: !character create Urso 3 16 12 14 6 10 6 | str con | athletics nature stealth survival | perception\n'
@@ -134,6 +138,14 @@ class DNDRoller(discord.Client):
         except:
             self.cache = {}
 
+        self.stats_match = [
+            'str', 'strength',
+            'dex', 'dexterity',
+            'con', 'constitution',
+            'int', 'intelligence',
+            'wis', 'wisdom',
+            'cha', 'charisma',
+        ]
         self.stats = ['str', 'dex', 'con', 'int', 'wis', 'cha']
         self.skills = [
             'acrobatics', 'animal_handling', 'arcana', 'athletics', 'deception',
@@ -300,7 +312,7 @@ class DNDRoller(discord.Client):
                     # Add the active character if missing from a 2 parameter command
                     if len(fields) == 2:
                         fields.append(self.cache[guild]['users'][author]['active'])
-                            
+
                     # If the character is missing from the macro command, add the active one
                     if fields[2] not in self.cache[guild]['users'][author]['characters'].keys():
                         fields = fields[:2] + [self.cache[guild]['users'][author]['active']] + fields[2:]
@@ -441,7 +453,7 @@ class DNDRoller(discord.Client):
                         x = int(fields[1])
                         y = int(fields[2])
                         d = int(fields[3])
-                        
+
                         if x and y and d:
                             await message.channel.send("So you already know all three sides? Why are you asking me then? Kids these days...")
                         if x and y:
@@ -455,8 +467,8 @@ class DNDRoller(discord.Client):
                             await message.channel.send(f"Moving `{d}ft` diagonally and `{y}ft` vertically allows you to move `{x}ft` on the ground.")
                         else:
                             await message.channel.send("I need to know the length of two sides to calculate the third, I'm not a wizard...")
-                            
-                        
+
+
                         await message.channel.send(f"")
                     else:
                         await message.channel.send("Received too few or too many arguments, please check the help command for instructions.")
@@ -513,6 +525,7 @@ class DNDRoller(discord.Client):
                 'save_prof': [],
                 'skill_prof': [],
                 'skill_expertise': [],
+                'advantage': [],
                 'ability_bonus': 0,
                 'skill_bonus': 0,
                 'macros': {},
@@ -607,6 +620,16 @@ class DNDRoller(discord.Client):
                         return f'Error: unknown skill {fields[idx]}.'
                     idx = idx + 1
 
+            elif fields[3] == 'adv' or fields[3] == 'advantage':
+                character['advantage'] = character.get('advantage', [])
+                character['advantage'].clear()
+                while idx < len(fields):
+                    if fields[idx] in (self.skills + self.stats_match):
+                        character['advantage'].append(fields[idx])
+                    else:
+                        return f'Error: unknown ability/skill {fields[idx]}.'
+                    idx = idx + 1
+
             self.cache[guild]['users'][author]['characters'][fields[2]] = character
             return f'Character {fields[2]} was updated.'
         else:
@@ -682,7 +705,8 @@ class DNDRoller(discord.Client):
             pretty_skill = ' '.join(skill.split('_')).title()
             mod, prof_indicator = await self.get_character_skill_mod(character, skill)
             mod = mod + character.get('skill_bonus', 0)
-            fstr = '%15s: %2s (%s|%s) %s'%(pretty_skill, mod, stat, 10 + mod, prof_indicator)
+            adv_mod = 5 if skill in character.get('advantage', []) else 0
+            fstr = '%15s: %2s (%s|%s) %s'%(pretty_skill, mod, stat, 10 + mod + adv_mod, prof_indicator)
             msg = f"{msg}{fstr}\n"
 
         msg = msg + "```"
@@ -744,9 +768,9 @@ class DNDRoller(discord.Client):
 
         # Set advantage/disadvantage
         if roll.startswith('1d20'):
-            if modifiers['mode'] == 'a':
+            if modifiers['mode'] == 'a' or target in character.get('advantage', []):
                 roll = roll.replace('1d20', '2d20kh1', 1)
-            if modifiers['mode'] == 'ta':
+            elif modifiers['mode'] == 'ta':
                 roll = roll.replace('1d20', '3d20kh1', 1)
             elif modifiers['mode'] == 'd':
                 roll = roll.replace('1d20', '2d20kl1', 1)
@@ -862,6 +886,7 @@ class DNDRoller(discord.Client):
             'save_prof': [],
             'skill_prof': [],
             'skill_expertise': [],
+            'advantage': [],
             'ability_bonus': 0,
             'skill_bonus': 0,
             'macros': {},
