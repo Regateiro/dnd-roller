@@ -138,14 +138,6 @@ class DNDRoller(discord.Client):
         except:
             self.cache = {}
 
-        self.stats_match = [
-            'str', 'strength',
-            'dex', 'dexterity',
-            'con', 'constitution',
-            'int', 'intelligence',
-            'wis', 'wisdom',
-            'cha', 'charisma',
-        ]
         self.stats = ['str', 'dex', 'con', 'int', 'wis', 'cha']
         self.skills = [
             'acrobatics', 'animal_handling', 'arcana', 'athletics', 'deception',
@@ -624,8 +616,9 @@ class DNDRoller(discord.Client):
                 character['advantage'] = character.get('advantage', [])
                 character['advantage'].clear()
                 while idx < len(fields):
-                    if fields[idx] in (self.skills + self.stats_match):
-                        character['advantage'].append(await self.get_stat_fullname(fields[idx]))
+                    target = await self.get_stat_shortname(fields[idx])
+                    if target in (self.skills + self.stats):
+                        character['advantage'].append(target)
                     else:
                         return f'Error: unknown ability/skill {fields[idx]}.'
                     idx = idx + 1
@@ -705,7 +698,7 @@ class DNDRoller(discord.Client):
             pretty_skill = ' '.join(skill.split('_')).title()
             mod, prof_indicator = await self.get_character_skill_mod(character, skill)
             mod = mod + character.get('skill_bonus', 0)
-            adv_mod = 5 if skill in character.get('advantage', []) else 0
+            adv_mod = 5 if (await self.get_stat_shortname(skill)) in character.get('advantage', []) else 0
             fstr = '%15s: %2s (%s|%s) %s'%(pretty_skill, mod, stat, 10 + mod + adv_mod, prof_indicator)
             msg = f"{msg}{fstr}\n"
 
@@ -768,7 +761,7 @@ class DNDRoller(discord.Client):
 
         # Set advantage/disadvantage
         if roll.startswith('1d20'):
-            if modifiers['mode'] == 'a' or (await self.get_stat_fullname(target)) in character.get('advantage', []):
+            if modifiers['mode'] == 'a' or (await self.get_stat_shortname(target)) in character.get('advantage', []):
                 roll = roll.replace('1d20', '2d20kh1', 1)
             elif modifiers['mode'] == 'ta':
                 roll = roll.replace('1d20', '3d20kh1', 1)
@@ -869,6 +862,27 @@ class DNDRoller(discord.Client):
 
         if stat == 'cha':
             return 'charisma'
+
+        return stat
+
+    async def get_stat_shortname(self, stat: str) -> str:
+        if stat == 'strength':
+            return 'str'
+
+        if stat == 'dexterity':
+            return 'dex'
+
+        if stat == 'constitution':
+            return 'con'
+
+        if stat == 'intelligence':
+            return 'int'
+
+        if stat == 'wisdom':
+            return 'wis'
+
+        if stat == 'charisma':
+            return 'cha'
 
         return stat
 
