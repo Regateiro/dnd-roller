@@ -64,7 +64,7 @@ char_help = (
     ' - <level> <strength> <dexterity> <constitution> <intelligence> <wisdom> <charisma>\n'
     ' - Example: \'!character update Urso main 3 16 12 14 6 10 6\'\n'
     '\n'
-    'Saves Profficiency Template:\n'
+    'Saves Proficiency Template:\n'
     ' - [save] [save]...\n'
     ' - Available Saves: str, dex, con, int, wis, cha\n'
     ' - Example: \'!character update Urso saves str con\'\n'
@@ -82,6 +82,10 @@ char_help = (
     'history, insight, intimidation, investigation, medicine, nature, perception, performance'
     'persuasion, religion, sleight_of_hand, stealth, survival\n'
     ' - Example: \'!character update Urso expertise perception\'\n'
+    '\n'
+    'Bonus Template:\n'
+    ' - <save bonus> <check bonus>\n'
+    ' - Example: \'!character update Urso bonus 1 2\'\n'
     '\n'
     'Full Template:\n'
     ' - <main_stats> | <saves> | <skills> | <expertises>\n'
@@ -261,24 +265,28 @@ class DNDRoller(discord.Client):
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
                         await message.channel.send(vars_help)
 
+                    # Add the active character if missing from a 2 parameter command
+                    if len(fields) == 2:
+                        fields.append(self.cache[guild]['users'][author]['active'])
+
                     # If the character is missing from the macro command, add the active one
-                    if fields[1] not in self.cache[guild]['users'][author]['characters'].keys():
-                        fields = fields[:1] + [self.cache[guild]['users'][author]['active']] + fields[1:]
+                    if fields[2] not in self.cache[guild]['users'][author]['characters'].keys():
+                        fields = fields[:2] + [self.cache[guild]['users'][author]['active']] + fields[2:]
 
                     # Process set macro command
-                    if fields[2] == 'set' or fields[2] == 's':
+                    if fields[1] == 'set' or fields[1] == 's':
                         await message.channel.send(
                             await self.set_macro(guild, author, fields)
                         )
 
                     # Process delete macro command
-                    elif fields[2] == 'delete' or fields[2] == 'd':
+                    elif fields[1] == 'delete' or fields[1] == 'd':
                         await message.channel.send(
                             await self.delete_macro(guild, author, fields)
                         )
 
                     # Process list macro command
-                    elif fields[2] == 'list' or fields[2] == 'l':
+                    elif fields[1] == 'list' or fields[1] == 'l':
                         await message.channel.send(
                             await self.get_macros(guild, author, fields)
                         )
@@ -289,24 +297,28 @@ class DNDRoller(discord.Client):
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
                         await message.channel.send(vars_help)
 
+                    # Add the active character if missing from a 2 parameter command
+                    if len(fields) == 2:
+                        fields.append(self.cache[guild]['users'][author]['active'])
+                            
                     # If the character is missing from the macro command, add the active one
-                    if fields[1] not in self.cache[guild]['users'][author]['characters'].keys():
-                        fields = fields[:1] + [self.cache[guild]['users'][author]['active']] + fields[1:]
+                    if fields[2] not in self.cache[guild]['users'][author]['characters'].keys():
+                        fields = fields[:2] + [self.cache[guild]['users'][author]['active']] + fields[2:]
 
                     # Process set variable command
-                    if fields[2] == 'set' or fields[2] == 's':
+                    if fields[1] == 'set' or fields[1] == 's':
                         await message.channel.send(
                             await self.set_variable(guild, author, fields)
                         )
 
                     # Process delete variable command
-                    elif fields[2] == 'delete' or fields[2] == 'h':
+                    elif fields[1] == 'delete' or fields[1] == 'h':
                         await message.channel.send(
                             await self.delete_variable(guild, author, fields)
                         )
 
                     # Process list variable command
-                    elif fields[2] == 'list' or fields[2] == 'l':
+                    elif fields[1] == 'list' or fields[1] == 'l':
                         await message.channel.send(
                             await self.get_variables(guild, author, fields)
                         )
@@ -501,6 +513,8 @@ class DNDRoller(discord.Client):
                 'save_prof': [],
                 'skill_prof': [],
                 'skill_expertise': [],
+                'ability_bonus': 0,
+                'skill_bonus': 0,
                 'macros': {},
                 'variables': {},
             }
@@ -568,6 +582,13 @@ class DNDRoller(discord.Client):
                         return f'Error: unknown stat {fields[idx]}.'
                     idx = idx + 1
 
+            elif fields[3] == 'bonus':
+                if len(fields) == 6:
+                    character['ability_bonus'] = int(fields[4])
+                    character['skill_bonus'] = int(fields[5])
+                else:
+                    return f'Error: Wrong number of arguments. Expected general save and check bonus.'
+
             elif fields[3] == 'skills':
                 character['skill_prof'].clear()
                 while idx < len(fields):
@@ -592,38 +613,38 @@ class DNDRoller(discord.Client):
             return f'No such character exists for you.'
 
     async def set_macro(self, guild: str, author: str, fields: list) -> str:
-        character = self.cache[guild]['users'][author]['characters'][fields[1]]
+        character = self.cache[guild]['users'][author]['characters'][fields[2]]
         character['macros'][fields[3]] = fields[4]
-        return f'Added macro {fields[3]} to {fields[1].capitalize()}.'
+        return f'Added macro {fields[3]} to {fields[2].capitalize()}.'
 
     async def delete_macro(self, guild: str, author: str, fields: list) -> str:
-        character = self.cache[guild]['users'][author]['characters'][fields[1]]
+        character = self.cache[guild]['users'][author]['characters'][fields[2]]
         if character['macros'].pop(fields[3], None):
-            return f'Removed macro {fields[3]} from {fields[1].capitalize()}.'
+            return f'Removed macro {fields[3]} from {fields[2].capitalize()}.'
         else:
-            return f'No such macro exists on {fields[1].capitalize()}.'
+            return f'No such macro exists on {fields[2].capitalize()}.'
 
     async def get_macros(self, guild: str, author: str, fields: list) -> str:
-        character = self.cache[guild]['users'][author]['characters'][fields[1]]
+        character = self.cache[guild]['users'][author]['characters'][fields[2]]
         macros = [f"{m}[{character['macros'][m]}]" for m in character['macros'].keys()]
-        return f"{fields[1].capitalize()} has the following macros: {macros}."
+        return f"{fields[2].capitalize()} has the following macros: {macros}."
 
     async def set_variable(self, guild: str, author: str, fields: list) -> str:
-        character = self.cache[guild]['users'][author]['characters'][fields[1]]
+        character = self.cache[guild]['users'][author]['characters'][fields[2]]
         character['variables'][fields[3]] = fields[4]
-        return f'Added variable {fields[3]} to {fields[1].capitalize()}.'
+        return f'Added variable {fields[3]} to {fields[2].capitalize()}.'
 
     async def delete_variable(self, guild: str, author: str, fields: list) -> str:
-        character = self.cache[guild]['users'][author]['characters'][fields[1]]
+        character = self.cache[guild]['users'][author]['characters'][fields[2]]
         if character['variables'].pop(fields[3], None):
-            return f'Removed variable {fields[3]} from {fields[1].capitalize()}.'
+            return f'Removed variable {fields[3]} from {fields[2].capitalize()}.'
         else:
-            return f'No such variable exists on {fields[1].capitalize()}.'
+            return f'No such variable exists on {fields[2].capitalize()}.'
 
     async def get_variables(self, guild: str, author: str, fields: list) -> str:
-        character = self.cache[guild]['users'][author]['characters'][fields[1]]
+        character = self.cache[guild]['users'][author]['characters'][fields[2]]
         variables = [f"{v}[{character['variables'][v]}]" for v in character['variables'].keys()]
-        return f"{fields[1].capitalize()} has the following variables: {variables}."
+        return f"{fields[2].capitalize()} has the following variables: {variables}."
 
     async def get_character(self, guild: str, author: str, fields: list) -> str:
         msg = '```\n'
@@ -638,13 +659,15 @@ class DNDRoller(discord.Client):
         msg = f"{msg}Name: {name.capitalize()}\n"
         msg = f"{msg}Level: {character['level']}\n"
         msg = f"{msg}Proficiency: {prof_mod}\n"
+        msg = f"{msg}Ability Check Bonus: {character.get('ability_bonus', 0)}\n"
+        msg = f"{msg}Skill Check Bonus: {character.get('skill_bonus', 0)}\n"
 
         msg = msg + "\n"
 
         for stat in self.stats:
             fullstat = await self.get_stat_fullname(stat)
             score = character['stats'][stat]
-            mod = await self.get_character_stat_mod(character, stat)
+            mod = await self.get_character_stat_mod(character, stat) + character.get('ability_bonus', 0)
             if stat in character['save_prof']:
                 fstr = '%15s: %2s (%s/%s) ✓'%(fullstat.capitalize(), score, mod, mod + prof_mod)
                 msg = f"{msg}{fstr}\n"
@@ -658,6 +681,7 @@ class DNDRoller(discord.Client):
             stat = await self.get_skill_stat(skill)
             pretty_skill = ' '.join(skill.split('_')).title()
             mod, prof_indicator = await self.get_character_skill_mod(character, skill)
+            mod = mod + character.get('skill_bonus', 0)
             fstr = '%15s: %2s (%s|%s) %s'%(pretty_skill, mod, stat, 10 + mod, prof_indicator)
             msg = f"{msg}{fstr}\n"
 
@@ -681,6 +705,9 @@ class DNDRoller(discord.Client):
 
         return stat
 
+    async def is_ability_stat(self, skill: str) -> bool:
+        return skill in ['int', 'intelligence', 'cha', 'charisma', 'dex', 'dexterity', 'str', 'strength', 'con', 'constitution', 'wis', 'wisdom']
+
     async def get_character_roll(self, character: dict, target: str, modifiers: dict) -> str:
         # If a macro was passed, roll that instead
         if target in character['macros']:
@@ -702,6 +729,14 @@ class DNDRoller(discord.Client):
             # Determine if expertise applies
             if target in character['skill_expertise']:
                 roll = f"{roll}+{await self.get_character_prof_mod(character) * 2}"
+
+        # Add general save bonus if it is a save roll
+        if await self.is_ability_stat(target) and character.get('ability_bonus', 0) != 0:
+            roll = f"{roll}+{character['ability_bonus']}"
+
+        # Add general check bonus if it is a check roll
+        if target in self.skills and character.get('skill_bonus', 0) != 0:
+            roll = f"{roll}+{character['skill_bonus']}"
 
         # Add other modifiers
         for var in modifiers['vars']:
@@ -827,6 +862,8 @@ class DNDRoller(discord.Client):
             'save_prof': [],
             'skill_prof': [],
             'skill_expertise': [],
+            'ability_bonus': 0,
+            'skill_bonus': 0,
             'macros': {},
             'variables': {},
         }
