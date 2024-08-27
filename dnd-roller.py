@@ -625,7 +625,7 @@ class DNDRoller(discord.Client):
                 character['advantage'].clear()
                 while idx < len(fields):
                     if fields[idx] in (self.skills + self.stats_match):
-                        character['advantage'].append(fields[idx])
+                        character['advantage'].append(await self.get_stat_fullname(fields[idx]))
                     else:
                         return f'Error: unknown ability/skill {fields[idx]}.'
                     idx = idx + 1
@@ -754,11 +754,11 @@ class DNDRoller(discord.Client):
             if target in character['skill_expertise']:
                 roll = f"{roll}+{await self.get_character_prof_mod(character) * 2}"
 
-        # Add general save bonus if it is a save roll
+        # Add general ability bonus if it is an ability roll
         if await self.is_ability_stat(target) and character.get('ability_bonus', 0) != 0:
             roll = f"{roll}+{character['ability_bonus']}"
 
-        # Add general check bonus if it is a check roll
+        # Add general skill bonus if it is a skill roll
         if target in self.skills and character.get('skill_bonus', 0) != 0:
             roll = f"{roll}+{character['skill_bonus']}"
 
@@ -768,7 +768,7 @@ class DNDRoller(discord.Client):
 
         # Set advantage/disadvantage
         if roll.startswith('1d20'):
-            if modifiers['mode'] == 'a' or target in character.get('advantage', []):
+            if modifiers['mode'] == 'a' or (await self.get_stat_fullname(target)) in character.get('advantage', []):
                 roll = roll.replace('1d20', '2d20kh1', 1)
             elif modifiers['mode'] == 'ta':
                 roll = roll.replace('1d20', '3d20kh1', 1)
@@ -870,7 +870,7 @@ class DNDRoller(discord.Client):
         if stat == 'cha':
             return 'charisma'
 
-        return "unknown"
+        return stat
 
     async def create_empty_character(self) -> dict:
         return {
