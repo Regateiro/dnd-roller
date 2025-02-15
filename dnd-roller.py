@@ -5,6 +5,7 @@ import os
 import re
 import calendar
 import logging
+import messages
 from datetime import datetime, timedelta
 
 import d20
@@ -18,115 +19,7 @@ config = configparser.ConfigParser()
 config.read(
     f"{os.getenv('HOME', 'root')}/.config/dnd-roller/config.ini"
 )
-help_msg_1 = (
-    'Available Commands (can be shorthanded to the first letter):\n'
-    '```'
-    '!roll <dice>                                                   # Roll the dice using dice notation\n'
-    '!roll [<character>] <skill|macro> [crit] [save] [a|ta|d] [var] # Roll a character\'s stat, save or skill check\n'
-    '\n'
-    '!distance <ground> <vertical> <diagonal>                       # Calculates distances (use 0 to indicate the one to calculate)\n'
-    '\n'
-    '!f <height>                                                    # Calculates how long to hit the ground while free-falling\n'
-    '\n'
-    '!character                                                     # Manage user characters\n'
-    '  - list                                                       # List all your characters\n'
-    '  - active [<character>]                                       # Sets the active character (shows the current one if omited)\n'
-    '  - info [<character>]                                         # Shows a character information\n'
-    '  - show [<character>]                                         # Alias for info (see info)\n'
-    '  - create <character> <full_template>                         # Create/Overwrite a character\n'
-    '  - update <character> main <main_template>                    # Update the character\'s main stats\n'
-    '  - update <character> saves <saves_template>                  # Update the character\'s save proficiencies\n'
-    '  - update <character> skills <skills_template>                # Update the character\'s skill proficiencies\n'
-    '  - update <character> expertise <expertise_template>          # Update the character\'s skill expertise\n'
-    '  - delete <character>                                         # Delete a character\n'
-    '  - help                                                       # Show more detailed help\n'
-    '```'
-)
-help_msg_2 = (
-    'Advanced Commands (can be shorthanded to the first letter):\n'
-    '```'
-    '!macro                                          # Manage character macros\n'
-    '  - set [<character>] <name> <dice>             # Set a macro using dice notation for a character\n'
-    '  - delete [<character>] <name>                 # Delete a macro from a character\n'
-    '  - list [<character>]                          # List all the macros for a character\n'
-    '  - help                                        # Show more detailed help\n'
-    '\n'
-    '!variable                                       # Manage character variables to use as modifiers\n'
-    '  - set [<character>] <name> <value>            # Set a variable value for a character\n'
-    '  - delete [<character>] <name>                 # Delete a variable from a character\n'
-    '  - list [<character>]                          # List all the variables for a character\n'
-    '  - help                                        # Show more detailed help\n'
-    '```'
-)
-char_help = (
-    '```'
-    'Main Template:\n'
-    ' - <level> <strength> <dexterity> <constitution> <intelligence> <wisdom> <charisma>\n'
-    ' - Example: \'!character update Urso main 3 16 12 14 6 10 6\'\n'
-    '\n'
-    'Saves Proficiency Template:\n'
-    ' - [save] [save]...\n'
-    ' - Available Saves: str, dex, con, int, wis, cha\n'
-    ' - Example: \'!character update Urso saves str con\'\n'
-    '\n'
-    'Skill Proficiency Template:\n'
-    ' - [skill] [skill]...\n'
-    ' - Available Saves: acrobatics, animal_handling, arcana, athletics, deception, '
-    'history, insight, intimidation, investigation, medicine, nature, perception, performance, '
-    'persuasion, religion, sleight_of_hand, stealth, survival\n'
-    ' - Example: \'!character update Urso skills athletics nature stealth survival\'\n'
-    '\n'
-    'Skill Expertise Template:\n'
-    ' - [skill] [skill]...\n'
-    ' - Available Saves: acrobatics, animal_handling, arcana, athletics, deception,'
-    'history, insight, intimidation, investigation, medicine, nature, perception, performance'
-    'persuasion, religion, sleight_of_hand, stealth, survival\n'
-    ' - Example: \'!character update Urso expertise perception\'\n'
-    '\n'
-    'Bonus Template:\n'
-    ' - <save bonus> <check bonus>\n'
-    ' - Example: \'!character update Urso bonus 1 2\'\n'
-    '\n'
-    'Advantage Template:\n'
-    ' - [ability|skill] [ability|skill]...\n'
-    ' - Example: \'!character update Urso adv athletics\'\n'
-    '\n'
-    'Full Template:\n'
-    ' - <main_stats> | <saves> | <skills> | <expertises>\n'
-    ' - Example: !character create Urso 3 16 12 14 6 10 6 | str con | athletics nature stealth survival | perception\n'
-    '```'
-)
-vars_help = (
-    '```'
-    'Variable/Macro names can be any single word, however the following words will not function properly:\n'
-    ' - a, ta, adv, tadv, advantage, tadvantage, d, dis, disadvantage, crit, save, and any stat or skill name\n\n'
-    'Variable/Macro values can include:\n'
-    ' - Simple Bonuses:      2             # (Example: !v set rage 2)\n'
-    ' - Dice Notation:       1d4           # (Example: !v set bless 1d4)\n'
-    ' - Special References:  $ref          # (Example: !v set kol $cha_mod)\n'
-    ' - Mix of the Above:    1d4+$ref      # (Example: !v set kol 1d4+$cha_mod)\n\n'
-    'Special References:\n'
-    ' - Level:               $level\n'
-    ' - Proficiency Bonus:   $prof\n'
-    ' - Ability Scores:      $<score>      # (Example: $str)\n'
-    ' - Ability Modifiers:   $<score>_mod  # (Example: $wis_mod)\n'
-    ' - Skills:              $<skill>      # (Example: $insight)\n\n'
-    '```'
-)
-session_help = (
-    'Available Session Management Commands (can be shorthanded to the first letter):\n'
-    '```'
-    '!session                          # Manage server\'s sessions.\n'
-    '  - weekday <monday|tuesday|...>  # Sets the default weekday for sessions.\n'
-    '  - list                          # List all the currently scheduled sessions and player unavailabilities.\n'
-    '  - next                          # List the next scheduled session and player unavailabilities.\n'
-    '  - schedule <YYYY-MM-DD>         # Schedule a session for the given date.\n'
-    '  - cancel  <YYYY-MM-DD>          # Cancel a session scheduled for the given date.\n'
-    '  - available  <YYYY-MM-DD>       # Set a player as available for a given session. This is the default setting.\n'
-    '  - unavailable <YYYY-MM-DD>      # Set a player as unavailable for a given session.\n'
-    '  - help                          # Show this help.\n'
-    '```'
-)
+
 
 class DNDRoller(discord.Client):
     def __init__(self, intents):
@@ -220,7 +113,7 @@ class DNDRoller(discord.Client):
                 elif fields[0] == '!character' or fields[0] == '!char' or fields[0] == '!c':
                     # Send character help if requested or no option selected
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
-                        await message.channel.send(char_help)
+                        await message.channel.send(messages.CHAR_HELP)
 
                     # Process create character command
                     elif fields[1] == 'create' or fields[1] == 'c':
@@ -267,7 +160,7 @@ class DNDRoller(discord.Client):
                 elif fields[0] == '!m' or fields[0] == '!macro':
                     # Send character help if requested or no option selected
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
-                        await message.channel.send(vars_help)
+                        await message.channel.send(messages.VARS_HELP)
 
                     # Add the active character if missing from a 2 parameter command
                     if len(fields) == 2:
@@ -299,7 +192,7 @@ class DNDRoller(discord.Client):
                 elif fields[0] == '!v' or fields[0] == '!var' or fields[0] == '!variable':
                     # Send character help if requested or no option selected
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
-                        await message.channel.send(vars_help)
+                        await message.channel.send(messages.VARS_HELP)
 
                     # Add the active character if missing from a 2 parameter command
                     if len(fields) == 2:
@@ -333,7 +226,7 @@ class DNDRoller(discord.Client):
 
                     # Send character help if requested or no option selected
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
-                        await message.channel.send(session_help)
+                        await message.channel.send(messages.SESSION_HELP)
 
                     elif fields[1] == 'weekday' or fields[1] == 'w':
                         day = [x.lower() for x in list(calendar.day_name)].index(fields[2].lower())
@@ -479,9 +372,9 @@ class DNDRoller(discord.Client):
 
                 # Process help command
                 elif fields[0] == '!h' or fields[0] == '!help':
-                    await message.channel.send(help_msg_1)
-                    await message.channel.send(help_msg_2)
-                    await message.channel.send(session_help)
+                    await message.channel.send(messages.HELP_MSG_1)
+                    await message.channel.send(messages.HELP_MSG_2)
+                    await message.channel.send(messages.SESSION_HELP)
             except Exception as ex:
                 logging.exception(ex)
             finally:
