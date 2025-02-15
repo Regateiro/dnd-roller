@@ -5,7 +5,7 @@ import os
 import re
 import calendar
 import logging
-import messages
+import utils.strings as strings
 from datetime import datetime, timedelta
 
 import d20
@@ -113,7 +113,7 @@ class DNDRoller(discord.Client):
                 elif fields[0] == '!character' or fields[0] == '!char' or fields[0] == '!c':
                     # Send character help if requested or no option selected
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
-                        await message.channel.send(messages.CHAR_HELP)
+                        await message.channel.send(strings.CHAR_HELP)
 
                     # Process create character command
                     elif fields[1] == 'create' or fields[1] == 'c':
@@ -160,7 +160,7 @@ class DNDRoller(discord.Client):
                 elif fields[0] == '!m' or fields[0] == '!macro':
                     # Send character help if requested or no option selected
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
-                        await message.channel.send(messages.VARS_HELP)
+                        await message.channel.send(strings.VARS_HELP)
 
                     # Add the active character if missing from a 2 parameter command
                     if len(fields) == 2:
@@ -192,7 +192,7 @@ class DNDRoller(discord.Client):
                 elif fields[0] == '!v' or fields[0] == '!var' or fields[0] == '!variable':
                     # Send character help if requested or no option selected
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
-                        await message.channel.send(messages.VARS_HELP)
+                        await message.channel.send(strings.VARS_HELP)
 
                     # Add the active character if missing from a 2 parameter command
                     if len(fields) == 2:
@@ -226,7 +226,7 @@ class DNDRoller(discord.Client):
 
                     # Send character help if requested or no option selected
                     if len(fields) == 1 or fields[1] == 'help' or fields[1] == 'h':
-                        await message.channel.send(messages.SESSION_HELP)
+                        await message.channel.send(strings.SESSION_HELP)
 
                     elif fields[1] == 'weekday' or fields[1] == 'w':
                         day = [x.lower() for x in list(calendar.day_name)].index(fields[2].lower())
@@ -372,9 +372,9 @@ class DNDRoller(discord.Client):
 
                 # Process help command
                 elif fields[0] == '!h' or fields[0] == '!help':
-                    await message.channel.send(messages.HELP_MSG_1)
-                    await message.channel.send(messages.HELP_MSG_2)
-                    await message.channel.send(messages.SESSION_HELP)
+                    await message.channel.send(strings.HELP_MSG_1)
+                    await message.channel.send(strings.HELP_MSG_2)
+                    await message.channel.send(strings.SESSION_HELP)
             except Exception as ex:
                 logging.exception(ex)
             finally:
