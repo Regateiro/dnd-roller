@@ -353,7 +353,7 @@ class DNDRoller(discord.Client):
                         await message.channel.send("Received too few or too many arguments, please check the help command for instructions.")
 
                 elif fields[0] == "!fall" or fields[0] == "!f":
-                    if len(fields) == 3:
+                    if len(fields) == 2:
                         height = int(fields[1])
                         if height < 500:
                             time = round(math.sqrt(height * 36 / 500.0), 2)
