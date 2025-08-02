@@ -336,7 +336,7 @@ class DNDRoller(discord.Client):
 
                         if x and y and d:
                             await message.channel.send("So you already know all three sides? Why are you asking me then? Kids these days...")
-                        if x and y:
+                        elif x and y:
                             d = math.ceil(math.sqrt(math.pow(x, 2) + math.pow(y, 2)) / 5) * 5
                             await message.channel.send(f"Moving `{x}ft` on the ground and `{y}ft` vertically costs `{d}ft` of total movement.")
                         elif x and d:
@@ -347,8 +347,6 @@ class DNDRoller(discord.Client):
                             await message.channel.send(f"Moving `{d}ft` diagonally and `{y}ft` vertically allows you to move `{x}ft` on the ground.")
                         else:
                             await message.channel.send("I need to know the length of two sides to calculate the third, I'm not a wizard...")
-
-                        await message.channel.send("")
                     else:
                         await message.channel.send("Received too few or too many arguments, please check the help command for instructions.")
 
