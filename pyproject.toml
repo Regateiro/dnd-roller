@@ -10,6 +10,7 @@ python = "^3.10"
 python-dateutil = "^2.9.0"
 d20 = "^1.1.2"
 discord = "^2.3.2"
+str2bool = "^1.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

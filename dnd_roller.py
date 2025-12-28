@@ -13,6 +13,7 @@ import d20
 import discord
 from dateutil.parser import parse
 from discord import Message
+from str2bool import str2bool
 
 from utils import strings
 
@@ -480,7 +481,7 @@ class DNDRoller(discord.Client):
                 elif len(fields) == 7:
                     character["ability_bonus"] = int(fields[4])
                     character["skill_bonus"] = int(fields[5])
-                    character["jack_of_all_trades"] = bool(fields[6])
+                    character["jack_of_all_trades"] = str2bool(fields[6])
                 else:
                     return "Error: Wrong number of arguments. Expected general save and check bonus."
 
