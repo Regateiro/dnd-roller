@@ -402,9 +402,11 @@ class DNDRoller(discord.Client):
                 "save_prof": [],
                 "skill_prof": [],
                 "skill_expertise": [],
+                "skill_half": [],
                 "advantage": [],
                 "ability_bonus": 0,
                 "skill_bonus": 0,
+                "jack_of_all_trades": False,
                 "macros": {},
                 "variables": {},
             }
@@ -475,6 +477,10 @@ class DNDRoller(discord.Client):
                 if len(fields) == 6:
                     character["ability_bonus"] = int(fields[4])
                     character["skill_bonus"] = int(fields[5])
+                elif len(fields) == 7:
+                    character["ability_bonus"] = int(fields[4])
+                    character["skill_bonus"] = int(fields[5])
+                    character["jack_of_all_trades"] = bool(fields[6])
                 else:
                     return "Error: Wrong number of arguments. Expected general save and check bonus."
 
@@ -492,6 +498,15 @@ class DNDRoller(discord.Client):
                 while idx < len(fields):
                     if fields[idx] in self.skills:
                         character["skill_expertise"].append(fields[idx])
+                    else:
+                        return f"Error: unknown skill {fields[idx]}."
+                    idx = idx + 1
+
+            elif fields[3] == "half":
+                character["skill_half"].clear()
+                while idx < len(fields):
+                    if fields[idx] in self.skills:
+                        character["skill_half"].append(fields[idx])
                     else:
                         return f"Error: unknown skill {fields[idx]}."
                     idx = idx + 1
@@ -558,6 +573,7 @@ class DNDRoller(discord.Client):
         msg = f"{msg}Proficiency: {prof_mod}\n"
         msg = f"{msg}Ability Check Bonus: {character.get('ability_bonus', 0)}\n"
         msg = f"{msg}Skill Check Bonus: {character.get('skill_bonus', 0)}\n"
+        msg = f"{msg}Jack of All Trades: {character.get('jack_of_all_trades', False)}\n"
 
         msg = msg + "\n"
 
@@ -679,13 +695,16 @@ class DNDRoller(discord.Client):
     async def _get_character_skill_mod(self, character: dict, skill: str) -> tuple[int, str]:
         stat = await self._get_skill_stat(skill)
 
-        if skill in character["skill_prof"]:
+        if skill in character.get("skill_prof", []):
             return await self._get_character_stat_mod(character, stat) + await self._get_character_prof_mod(character), "✓"
 
-        if skill in character["skill_expertise"]:
+        if skill in character.get("skill_expertise", []):
             return await self._get_character_stat_mod(character, stat) + await self._get_character_prof_mod(character) * 2, "✓✓"
 
-        return await self._get_character_stat_mod(character, stat), ""
+        if skill in character.get("skill_half", []):
+            return await self._get_character_stat_mod(character, stat) + math.floor(await self._get_character_prof_mod(character) * 0.5), "◐"
+
+        return await self._get_character_stat_mod(character, stat), "◐" if character.get("jack_of_all_trades", False) else ""
 
     async def _get_character_prof_mod(self, character: dict) -> int:
         return math.floor((character["level"] - 1) / 4) + 2
@@ -781,9 +800,11 @@ class DNDRoller(discord.Client):
             "save_prof": [],
             "skill_prof": [],
             "skill_expertise": [],
+            "skill_half": [],
             "advantage": [],
             "ability_bonus": 0,
             "skill_bonus": 0,
+            "jack_of_all_trades": False,
             "macros": {},
             "variables": {},
         }
