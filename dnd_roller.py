@@ -503,6 +503,7 @@ class DNDRoller(discord.Client):
                     idx = idx + 1
 
             elif fields[3] == "half":
+                character["skill_half"] = character.get("skill_half", [])
                 character["skill_half"].clear()
                 while idx < len(fields):
                     if fields[idx] in self.skills:
