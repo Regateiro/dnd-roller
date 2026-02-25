@@ -24,9 +24,19 @@ config.read(f"{os.getenv('HOME', 'root')}/.config/dnd-roller/config.ini")
 
 
 class DNDRoller(discord.Client):
-    """Discord Client"""
+    """Discord Client for D&D dice rolling and character management.
 
-    def __init__(self, app_intents):
+    This class extends discord.Client to provide a bot that can handle
+    dice rolls, character management, session scheduling, and various
+    D&D-related commands in Discord servers.
+    """
+
+    def __init__(self, app_intents) -> None:
+        """Initialize the D&D Roller bot.
+
+        Args:
+            app_intents: Discord intents required for the bot's functionality.
+        """
         super().__init__(intents=app_intents)
 
         try:
@@ -35,8 +45,8 @@ class DNDRoller(discord.Client):
         except FileNotFoundError:
             self.cache = {}
 
-        self.stats = ["str", "dex", "con", "int", "wis", "cha"]
-        self.skills = [
+        self.stats: list[str] = ["str", "dex", "con", "int", "wis", "cha"]
+        self.skills: list[str] = [
             "acrobatics",
             "animal_handling",
             "arcana",
@@ -57,12 +67,23 @@ class DNDRoller(discord.Client):
             "survival",
         ]
 
-    async def on_ready(self):
-        """Called when the app is ready"""
+    async def on_ready(self) -> None:
+        """Called when the bot has successfully connected to Discord.
+
+        Logs a message indicating the bot is ready and logged in.
+        """
         logging.info("Logged on as {0}!".format(self.user))
 
-    async def on_message(self, message: Message):
-        """Called when a message is received by the app"""
+    async def on_message(self, message: Message) -> None:
+        """Handle incoming Discord messages and process bot commands.
+
+        Processes messages that start with '!' and handles various D&D-related
+        commands including dice rolls, character management, session scheduling,
+        and utility functions.
+
+        Args:
+            message: The Discord message object containing the command.
+        """
         # Filter out normal messages
         if message.content.startswith("!"):
             try:
@@ -72,7 +93,7 @@ class DNDRoller(discord.Client):
                     guild = "None"
 
                 # Ensure the cache is initialized for the author
-                author = f"{str(message.author.id)}"
+                author: str = f"{str(message.author.id)}"
                 self.cache.setdefault(guild, {})
                 self.cache[guild].setdefault("users", {})
                 self.cache[guild].setdefault("sessions", {})
@@ -85,7 +106,7 @@ class DNDRoller(discord.Client):
                 self.cache[guild]["users"][author].setdefault("unavailability", [])
                 self.cache[guild]["users"][author].setdefault("active", "")
                 fields = message.content.lower().split(" ")
-                summary = ""
+                summary: str = ""
 
                 # Process roll commands
                 if fields[0] == "!r" or fields[0] == "!roll":
@@ -124,7 +145,7 @@ class DNDRoller(discord.Client):
 
                         roll = d20.roll(await self._get_character_roll(character, fields[2], modifiers))
 
-                    summary = f"{await self._generate_roll_summary(fields[1], fields[2], modifiers, character['macros'])}:\n"
+                    summary: str = f"{await self._generate_roll_summary(fields[1], fields[2], modifiers, character['macros'])}:\n"
                     await message.channel.send(f"{summary}{str(roll)}")
 
                 # Process character commands
@@ -227,14 +248,14 @@ class DNDRoller(discord.Client):
                         await message.channel.send(strings.SESSION_HELP)
 
                     elif fields[1] == "weekday" or fields[1] == "w":
-                        day = [x.lower() for x in list(calendar.day_name)].index(fields[2].lower())
+                        day: int = [x.lower() for x in list(calendar.day_name)].index(fields[2].lower())
                         self.cache[guild]["sessions"]["wday"] = day
                         await message.channel.send(f"Default session weekday set to {calendar.day_name[self.cache[guild]['sessions']['wday']]}.")
 
                     elif fields[1] == "schedule" or fields[1] == "s":
-                        date = parse(fields[2])
+                        date: datetime = parse(fields[2])
                         if date.date() >= date.now().date():
-                            datestr = date.strftime("%Y-%m-%d")
+                            datestr: str = date.strftime("%Y-%m-%d")
                             if datestr in self.cache[guild]["sessions"]["on"] or (
                                 date.weekday() == self.cache[guild]["sessions"]["wday"] and datestr not in self.cache[guild]["sessions"]["off"]
                             ):
@@ -251,8 +272,8 @@ class DNDRoller(discord.Client):
                             await message.channel.send("I'm also eager, but even I cannot go back in time.")
 
                     elif fields[1] == "cancel" or fields[1] == "c":
-                        date = parse(fields[2])
-                        datestr = date.strftime("%Y-%m-%d")
+                        date: datetime = parse(fields[2])
+                        datestr: str = date.strftime("%Y-%m-%d")
                         if datestr in self.cache[guild]["sessions"]["on"]:
                             self.cache[guild]["sessions"]["on"].remove(datestr)
                             await message.channel.send("Extra session cancelled.")
@@ -266,8 +287,8 @@ class DNDRoller(discord.Client):
                             await message.channel.send("Could not find an extra session scheduled for that date.")
 
                     elif fields[1] == "available" or fields[1] == "a":
-                        date = parse(fields[2])
-                        datestr = date.strftime("%Y-%m-%d")
+                        date: datetime = parse(fields[2])
+                        datestr: str = date.strftime("%Y-%m-%d")
                         if datestr in self.cache[guild]["sessions"]["on"] or date.weekday() == self.cache[guild]["sessions"]["wday"]:
                             if datestr in self.cache[guild]["users"][author]["unavailability"]:
                                 self.cache[guild]["users"][author]["unavailability"].remove(datestr)
@@ -278,8 +299,8 @@ class DNDRoller(discord.Client):
                             await message.channel.send("I do not recall a session scheduled for that day.")
 
                     elif fields[1] == "unavailable" or fields[1] == "u":
-                        date = parse(fields[2])
-                        datestr = date.strftime("%Y-%m-%d")
+                        date: datetime = parse(fields[2])
+                        datestr: str = date.strftime("%Y-%m-%d")
                         if datestr in self.cache[guild]["sessions"]["on"] or date.weekday() == self.cache[guild]["sessions"]["wday"]:
                             if datestr not in self.cache[guild]["users"][author]["unavailability"]:
                                 self.cache[guild]["users"][author]["unavailability"].append(datestr)
@@ -293,9 +314,9 @@ class DNDRoller(discord.Client):
                         await message.channel.send("Next four scheduled sessions:")
 
                         reported = 0
-                        date = datetime.now()
+                        date: datetime = datetime.now()
                         while reported != 4:
-                            datestr = date.strftime("%Y-%m-%d")
+                            datestr: str = date.strftime("%Y-%m-%d")
                             if (
                                 date.weekday() == self.cache[guild]["sessions"]["wday"] and datestr not in self.cache[guild]["sessions"]["off"]
                             ) or datestr in self.cache[guild]["sessions"]["on"]:
@@ -306,16 +327,16 @@ class DNDRoller(discord.Client):
                                         if datestr in self.cache[guild]['users'][u]['unavailability']
                                     ]}"""
                                 )
-                                reported = reported + 1
+                                reported: int = reported + 1
                             date += timedelta(days=1)
 
                     elif fields[1] == "next" or fields[1] == "n":
                         await message.channel.send("Next scheduled session:")
 
                         reported = False
-                        date = datetime.now()
+                        date: datetime = datetime.now()
                         while not reported:
-                            datestr = date.strftime("%Y-%m-%d")
+                            datestr: str = date.strftime("%Y-%m-%d")
                             if (
                                 date.weekday() == self.cache[guild]["sessions"]["wday"] and datestr not in self.cache[guild]["sessions"]["off"]
                             ) or datestr in self.cache[guild]["sessions"]["on"]:
@@ -338,13 +359,13 @@ class DNDRoller(discord.Client):
                         if x and y and d:
                             await message.channel.send("So you already know all three sides? Why are you asking me then? Kids these days...")
                         elif x and y:
-                            d = math.ceil(math.sqrt(math.pow(x, 2) + math.pow(y, 2)) / 5) * 5
+                            d: int = math.ceil(math.sqrt(math.pow(x, 2) + math.pow(y, 2)) / 5) * 5
                             await message.channel.send(f"Moving `{x}ft` on the ground and `{y}ft` vertically costs `{d}ft` of total movement.")
                         elif x and d:
-                            y = math.floor(math.sqrt(math.pow(d, 2) - math.pow(x, 2)) / 5) * 5
+                            y: int = math.floor(math.sqrt(math.pow(d, 2) - math.pow(x, 2)) / 5) * 5
                             await message.channel.send(f"Moving `{d}ft` diagonally and `{x}ft` on the ground allows you to move `{y}ft` vertically.")
                         elif y and d:
-                            x = math.floor(math.sqrt(math.pow(d, 2) - math.pow(y, 2)) / 5) * 5
+                            x: int = math.floor(math.sqrt(math.pow(d, 2) - math.pow(y, 2)) / 5) * 5
                             await message.channel.send(f"Moving `{d}ft` diagonally and `{y}ft` vertically allows you to move `{x}ft` on the ground.")
                         else:
                             await message.channel.send("I need to know the length of two sides to calculate the third, I'm not a wizard...")
@@ -355,10 +376,10 @@ class DNDRoller(discord.Client):
                     if len(fields) == 2:
                         height = int(fields[1])
                         if height < 500:
-                            time = round(math.sqrt(height * 36 / 500.0), 2)
+                            time: float = round(math.sqrt(height * 36 / 500.0), 2)
                         else:
-                            time = round(height * 6 / 500.0, 2)
-                        rounds = round(time / 6, 2)
+                            time: float = round(height * 6 / 500.0, 2)
+                        rounds: float = round(time / 6, 2)
                         await message.channel.send(f"Falling from `{height}ft` high will take `{time}s` to hit the ground, or `{rounds}` rounds.")
                     else:
                         await message.channel.send("Received too few or too many arguments, please check the help command for instructions.")
@@ -375,7 +396,15 @@ class DNDRoller(discord.Client):
                     json.dump(self.cache, fd)
 
     async def _clean_sessions(self, guild: str) -> None:
-        now = datetime.now().strftime("%Y-%m-%d")
+        """Clean up expired sessions and unavailability entries.
+
+        Removes sessions and user unavailability entries that are in the past
+        to keep the cache clean and up-to-date.
+
+        Args:
+            guild: The guild ID as a string.
+        """
+        now: str = datetime.now().strftime("%Y-%m-%d")
 
         for session in [s for s in self.cache[guild]["sessions"]["on"] if s < now]:
             self.cache[guild]["sessions"]["on"].remove(session)
@@ -388,6 +417,19 @@ class DNDRoller(discord.Client):
                 self.cache[guild]["users"][user]["unavailability"].remove(session)
 
     async def _create_character(self, guild: str, author: str, fields: list) -> str:
+        """Create a new character for a user.
+
+        Parses the command fields to create a character with ability scores,
+        saving throw proficiencies, skill proficiencies, and expertise.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: The command fields containing character creation data.
+
+        Returns:
+            A success or error message string.
+        """
         try:
             name = fields[2]
             character = {
@@ -420,23 +462,23 @@ class DNDRoller(discord.Client):
                     character["save_prof"].append(fields[idx])
                 else:
                     return f"Error: unknown stat {fields[idx]}."
-                idx = idx + 1
-            idx = idx + 1
+                idx: int = idx + 1
+            idx: int = idx + 1
 
             while fields[idx] != "|":
                 if fields[idx] in self.skills:
                     character["skill_prof"].append(fields[idx])
                 else:
                     return f"Error: unknown skill {fields[idx]}."
-                idx = idx + 1
-            idx = idx + 1
+                idx: int = idx + 1
+            idx: int = idx + 1
 
             while idx < len(fields):
                 if fields[idx] in self.skills:
                     character["skill_expertise"].append(fields[idx])
                 else:
                     return f"Error: unknown skill {fields[idx]}."
-                idx = idx + 1
+                idx: int = idx + 1
 
             self.cache[guild]["users"][author]["characters"][name] = character
             self.cache[guild]["users"][author]["active"] = name
@@ -445,11 +487,34 @@ class DNDRoller(discord.Client):
             return "Could not create the character, use !help for help."
 
     async def _delete_character(self, guild: str, author: str, fields: list) -> str:
+        """Delete a character from a user's character list.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: The command fields containing the character name to delete.
+
+        Returns:
+            A message indicating success or that the character doesn't exist.
+        """
         if self.cache[guild]["users"][author]["characters"].pop(fields[2], None):
             return f"Removed character {fields[2].capitalize()}. You may need to set a new active character."
         return "No such character exists for you."
 
     async def _update_character(self, guild: str, author: str, fields: list) -> str:
+        """Update various aspects of a character.
+
+        Can update main stats, saving throw proficiencies, skill proficiencies,
+        expertise, bonuses, and advantage conditions.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: The command fields containing update information.
+
+        Returns:
+            A success or error message string.
+        """
         if fields[2] in self.cache[guild]["users"][author]["characters"].keys():
             character = self.cache[guild]["users"][author]["characters"][fields[2]]
             idx = 4
@@ -472,7 +537,7 @@ class DNDRoller(discord.Client):
                         character["save_prof"].append(fields[idx])
                     else:
                         return f"Error: unknown stat {fields[idx]}."
-                    idx = idx + 1
+                    idx: int = idx + 1
 
             elif fields[3] == "bonus":
                 if len(fields) == 6:
@@ -492,7 +557,7 @@ class DNDRoller(discord.Client):
                         character["skill_prof"].append(fields[idx])
                     else:
                         return f"Error: unknown skill {fields[idx]}."
-                    idx = idx + 1
+                    idx: int = idx + 1
 
             elif fields[3] == "expertise":
                 character["skill_expertise"].clear()
@@ -501,7 +566,7 @@ class DNDRoller(discord.Client):
                         character["skill_expertise"].append(fields[idx])
                     else:
                         return f"Error: unknown skill {fields[idx]}."
-                    idx = idx + 1
+                    idx: int = idx + 1
 
             elif fields[3] == "half":
                 character["skill_half"] = character.get("skill_half", [])
@@ -511,56 +576,129 @@ class DNDRoller(discord.Client):
                         character["skill_half"].append(fields[idx])
                     else:
                         return f"Error: unknown skill {fields[idx]}."
-                    idx = idx + 1
+                    idx: int = idx + 1
 
             elif fields[3] == "adv" or fields[3] == "advantage":
                 character["advantage"] = character.get("advantage", [])
                 character["advantage"].clear()
                 while idx < len(fields):
-                    target = await self._get_stat_shortname(fields[idx])
+                    target: str = await self._get_stat_shortname(fields[idx])
                     if target in (self.skills + self.stats):
                         character["advantage"].append(target)
                     else:
                         return f"Error: unknown ability/skill {fields[idx]}."
-                    idx = idx + 1
+                    idx: int = idx + 1
 
             self.cache[guild]["users"][author]["characters"][fields[2]] = character
             return f"Character {fields[2]} was updated."
         return "No such character exists for you."
 
     async def _set_macro(self, guild: str, author: str, fields: list) -> str:
+        """Set a macro for a character.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: Command fields containing character name, macro name, and dice expression.
+
+        Returns:
+            A success message string.
+        """
         character = self.cache[guild]["users"][author]["characters"][fields[2]]
         character["macros"][fields[3]] = fields[4]
         return f"Added macro {fields[3]} to {fields[2].capitalize()}."
 
     async def _delete_macro(self, guild: str, author: str, fields: list) -> str:
+        """Delete a macro from a character.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: Command fields containing character name and macro name.
+
+        Returns:
+            A success or error message string.
+        """
         character = self.cache[guild]["users"][author]["characters"][fields[2]]
         if character["macros"].pop(fields[3], None):
             return f"Removed macro {fields[3]} from {fields[2].capitalize()}."
         return f"No such macro exists on {fields[2].capitalize()}."
 
     async def _get_macros(self, guild: str, author: str, fields: list) -> str:
+        """Get all macros for a character.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: Command fields containing character name.
+
+        Returns:
+            A formatted string listing all macros for the character.
+        """
         character = self.cache[guild]["users"][author]["characters"][fields[2]]
-        macros = [f"{m}[{character['macros'][m]}]" for m in character["macros"].keys()]
+        macros: list[str] = [f"{m}[{character['macros'][m]}]" for m in character["macros"].keys()]
         return f"{fields[2].capitalize()} has the following macros: {macros}."
 
     async def _set_variable(self, guild: str, author: str, fields: list) -> str:
+        """Set a variable for a character.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: Command fields containing character name, variable name, and value.
+
+        Returns:
+            A success message string.
+        """
         character = self.cache[guild]["users"][author]["characters"][fields[2]]
         character["variables"][fields[3]] = fields[4]
         return f"Added variable {fields[3]} to {fields[2].capitalize()}."
 
     async def _delete_variable(self, guild: str, author: str, fields: list) -> str:
+        """Delete a variable from a character.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: Command fields containing character name and variable name.
+
+        Returns:
+            A success or error message string.
+        """
         character = self.cache[guild]["users"][author]["characters"][fields[2]]
         if character["variables"].pop(fields[3], None):
             return f"Removed variable {fields[3]} from {fields[2].capitalize()}."
         return f"No such variable exists on {fields[2].capitalize()}."
 
     async def _get_variables(self, guild: str, author: str, fields: list) -> str:
+        """Get all variables for a character.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: Command fields containing character name.
+
+        Returns:
+            A formatted string listing all variables for the character.
+        """
         character = self.cache[guild]["users"][author]["characters"][fields[2]]
-        variables = [f"{v}[{character['variables'][v]}]" for v in character["variables"].keys()]
+        variables: list[str] = [f"{v}[{character['variables'][v]}]" for v in character["variables"].keys()]
         return f"{fields[2].capitalize()} has the following variables: {variables}."
 
     async def _get_character(self, guild: str, author: str, fields: list) -> str:
+        """Get formatted character information.
+
+        Displays detailed information about a character including stats,
+        proficiencies, skills, and other attributes.
+
+        Args:
+            guild: The guild ID as a string.
+            author: The user ID as a string.
+            fields: Command fields, optionally containing character name.
+
+        Returns:
+            A formatted string containing character information.
+        """
         msg = "```\n"
         if len(fields) > 2 and fields[2] in self.cache[guild]["users"][author]["characters"].keys():
             name = fields[2]
@@ -568,44 +706,52 @@ class DNDRoller(discord.Client):
             name = self.cache[guild]["users"][author]["active"]
 
         character = self.cache[guild]["users"][author]["characters"][name]
-        prof_mod = await self._get_character_prof_mod(character)
+        prof_mod: int = await self._get_character_prof_mod(character)
 
-        msg = f"{msg}Name: {name.capitalize()}\n"
-        msg = f"{msg}Level: {character['level']}\n"
-        msg = f"{msg}Proficiency: {prof_mod}\n"
-        msg = f"{msg}Ability Check Bonus: {character.get('ability_bonus', 0)}\n"
-        msg = f"{msg}Skill Check Bonus: {character.get('skill_bonus', 0)}\n"
-        msg = f"{msg}Jack of All Trades: {character.get('jack_of_all_trades', False)}\n"
+        msg: str = f"{msg}Name: {name.capitalize()}\n"
+        msg: str = f"{msg}Level: {character['level']}\n"
+        msg: str = f"{msg}Proficiency: {prof_mod}\n"
+        msg: str = f"{msg}Ability Check Bonus: {character.get('ability_bonus', 0)}\n"
+        msg: str = f"{msg}Skill Check Bonus: {character.get('skill_bonus', 0)}\n"
+        msg: str = f"{msg}Jack of All Trades: {character.get('jack_of_all_trades', False)}\n"
 
-        msg = msg + "\n"
+        msg: str = msg + "\n"
 
         for stat in self.stats:
-            fullstat = await self._get_stat_fullname(stat)
+            fullstat: str = await self._get_stat_fullname(stat)
             score = character["stats"][stat]
             mod = await self._get_character_stat_mod(character, stat) + character.get("ability_bonus", 0)
             if stat in character["save_prof"]:
-                fstr = "%15s: %2s (%s/%s) ✓" % (fullstat.capitalize(), score, mod, mod + prof_mod)
-                msg = f"{msg}{fstr}\n"
+                fstr: str = "%15s: %2s (%s/%s) ✓" % (fullstat.capitalize(), score, mod, mod + prof_mod)
+                msg: str = f"{msg}{fstr}\n"
             else:
-                fstr = "%15s: %2s (%s/%s)" % (fullstat.capitalize(), score, mod, mod)
-                msg = f"{msg}{fstr}\n"
+                fstr: str = "%15s: %2s (%s/%s)" % (fullstat.capitalize(), score, mod, mod)
+                msg: str = f"{msg}{fstr}\n"
 
-        msg = msg + "\n"
+        msg: str = msg + "\n"
 
         for skill in self.skills:
-            stat = await self._get_skill_stat(skill)
-            pretty_skill = " ".join(skill.split("_")).title()
+            stat: str = await self._get_skill_stat(skill)
+            pretty_skill: str = " ".join(skill.split("_")).title()
             mod, prof_indicator = await self._get_character_skill_mod(character, skill)
             mod = mod + character.get("skill_bonus", 0)
-            adv_mod = 5 if await self._get_stat_shortname(skill) in character.get("advantage", []) else 0
-            fstr = "%15s: %2s (%s|%s) %s" % (pretty_skill, mod, stat, 10 + mod + adv_mod, prof_indicator)
-            msg = f"{msg}{fstr}\n"
+            adv_mod: int = 5 if await self._get_stat_shortname(skill) in character.get("advantage", []) else 0
+            fstr: str = "%15s: %2s (%s|%s) %s" % (pretty_skill, mod, stat, 10 + mod + adv_mod, prof_indicator)
+            msg: str = f"{msg}{fstr}\n"
 
-        msg = msg + "```"
+        msg: str = msg + "```"
 
         return msg
 
     async def _get_skill_stat(self, skill: str) -> str:
+        """Get the ability stat associated with a skill.
+
+        Args:
+            skill: The skill name (can be short or long form).
+
+        Returns:
+            The associated ability stat abbreviation.
+        """
         if skill in ["int", "intelligence", "arcana", "history", "investigation", "nature", "religion"]:
             stat = "int"
         elif skill in ["cha", "charisma", "deception", "intimidation", "performance", "persuasion"]:
@@ -622,58 +768,91 @@ class DNDRoller(discord.Client):
         return stat
 
     async def _is_ability_stat(self, skill: str) -> bool:
+        """Check if a string represents an ability stat.
+
+        Args:
+            skill: The string to check.
+
+        Returns:
+            True if the string is an ability stat, False otherwise.
+        """
         return skill in ["int", "intelligence", "cha", "charisma", "dex", "dexterity", "str", "strength", "con", "constitution", "wis", "wisdom"]
 
     async def _get_character_roll(self, character: dict, target: str, modifiers: dict) -> str:
+        """Generate a dice roll expression for a character.
+
+        Creates a dice notation string based on the character's stats,
+        proficiencies, and modifiers for the given target (skill/stat/macro).
+
+        Args:
+            character: The character dictionary containing stats and proficiencies.
+            target: The skill, stat, or macro to roll for.
+            modifiers: Dictionary of modifiers (save, crit, etc.).
+
+        Returns:
+            A dice notation string ready for rolling.
+        """
         # If a macro was passed, roll that instead
         if target in character["macros"]:
-            roll = await self._resolve_references(character, character["macros"][target])
+            roll: str = await self._resolve_references(character, character["macros"][target])
         else:
             # Determine the base die given the roll mode
             roll = "1d20"
 
             # Determine the relevant stat
-            stat = await self._get_skill_stat(target)
+            stat: str = await self._get_skill_stat(target)
 
             # Determine stat modifier for the roll
-            roll = f"{roll}+{await self._get_character_stat_mod(character, stat)}"
+            roll: str = f"{roll}+{await self._get_character_stat_mod(character, stat)}"
 
             # Determine if proficiency applies
             if (modifiers["save"] and stat in character["save_prof"]) or target in character["skill_prof"]:
-                roll = f"{roll}+{await self._get_character_prof_mod(character)}"
+                roll: str = f"{roll}+{await self._get_character_prof_mod(character)}"
 
             # Determine if expertise applies
             if target in character["skill_expertise"]:
-                roll = f"{roll}+{await self._get_character_prof_mod(character) * 2}"
+                roll: str = f"{roll}+{await self._get_character_prof_mod(character) * 2}"
 
         # Add general ability bonus if it is an ability roll
         if await self._is_ability_stat(target) and character.get("ability_bonus", 0) != 0:
-            roll = f"{roll}+{character['ability_bonus']}"
+            roll: str = f"{roll}+{character['ability_bonus']}"
 
         # Add general skill bonus if it is a skill roll
         if target in self.skills and character.get("skill_bonus", 0) != 0:
-            roll = f"{roll}+{character['skill_bonus']}"
+            roll: str = f"{roll}+{character['skill_bonus']}"
 
         # Add other modifiers
         for var in modifiers["vars"]:
-            roll = f"{roll}+{await self._resolve_references(character, character['variables'][var])}"
+            roll: str = f"{roll}+{await self._resolve_references(character, character['variables'][var])}"
 
         # Set advantage/disadvantage
         if roll.startswith("1d20"):
             if modifiers["mode"] == "a" or (await self._get_stat_shortname(target)) in character.get("advantage", []):
-                roll = roll.replace("1d20", "2d20kh1", 1)
+                roll: str = roll.replace("1d20", "2d20kh1", 1)
             elif modifiers["mode"] == "ta":
-                roll = roll.replace("1d20", "3d20kh1", 1)
+                roll: str = roll.replace("1d20", "3d20kh1", 1)
             elif modifiers["mode"] == "d":
-                roll = roll.replace("1d20", "2d20kl1", 1)
+                roll: str = roll.replace("1d20", "2d20kl1", 1)
 
         # Process crit by doubling all die
         if modifiers["crit"]:
-            roll = re.sub(r"([0-9]+)d(4|6|8|10|12)", lambda x: f"{int(x.group(1))*2}d{x.group(2)}", roll)
+            roll: str = re.sub(r"([0-9]+)d(4|6|8|10|12)", lambda x: f"{int(x.group(1))*2}d{x.group(2)}", roll)
 
         return roll
 
     async def _resolve_references(self, character: dict, value: str) -> str:
+        """Resolve variable and stat references in a string.
+
+        Replaces placeholders like $str_mod, $level, $prof, etc. with
+        their actual values from the character data.
+
+        Args:
+            character: The character dictionary.
+            value: The string containing references to resolve.
+
+        Returns:
+            The string with all references resolved to their values.
+        """
         # Run replace strings
         value = value.replace("$level", str(character["level"]))
         value = value.replace("$prof", str(await self._get_character_prof_mod(character)))
@@ -692,10 +871,29 @@ class DNDRoller(discord.Client):
         return value
 
     async def _get_character_stat_mod(self, character: dict, stat: str) -> int:
+        """Calculate the modifier for an ability stat.
+
+        Args:
+            character: The character dictionary.
+            stat: The ability stat abbreviation.
+
+        Returns:
+            The stat modifier (floor((stat-10)/2)).
+        """
         return math.floor(character["stats"][stat] / 2) - 5
 
     async def _get_character_skill_mod(self, character: dict, skill: str) -> tuple[int, str]:
-        stat = await self._get_skill_stat(skill)
+        """Calculate the modifier and proficiency indicator for a skill.
+
+        Args:
+            character: The character dictionary.
+            skill: The skill name.
+
+        Returns:
+            A tuple of (modifier, proficiency_indicator) where indicator
+            shows proficiency level (✓, ✓✓, ◐, or empty).
+        """
+        stat: str = await self._get_skill_stat(skill)
 
         if skill in character.get("skill_prof", []):
             return await self._get_character_stat_mod(character, stat) + await self._get_character_prof_mod(character), "✓"
@@ -709,44 +907,71 @@ class DNDRoller(discord.Client):
         return await self._get_character_stat_mod(character, stat), "◐" if character.get("jack_of_all_trades", False) else ""
 
     async def _get_character_prof_mod(self, character: dict) -> int:
+        """Calculate the proficiency bonus for a character.
+
+        Args:
+            character: The character dictionary.
+
+        Returns:
+            The proficiency bonus based on character level.
+        """
         return math.floor((character["level"] - 1) / 4) + 2
 
     async def _generate_roll_summary(self, character: str, target: str, modifiers: dict, macros: dict) -> str:
-        summary = f"{character.capitalize()} rolled"
+        """Generate a human-readable summary of a roll.
+
+        Args:
+            character: The character name.
+            target: The skill/stat/macro being rolled.
+            modifiers: Dictionary of modifiers applied.
+            macros: Dictionary of character macros.
+
+        Returns:
+            A descriptive string summarizing the roll.
+        """
+        summary: str = f"{character.capitalize()} rolled"
 
         # Determine what we are rolling
         if target in macros.keys():
-            summary = f"{summary} using the macro {target}"
+            summary: str = f"{summary} using the macro {target}"
         elif target in self.stats:
-            summary = f"{summary} for a(n) {await self._get_stat_fullname(target)}"
+            summary: str = f"{summary} for a(n) {await self._get_stat_fullname(target)}"
         elif target in self.skills:
-            summary = f"{summary} for a(n) {target.replace('_', ' ')}"
+            summary: str = f"{summary} for a(n) {target.replace('_', ' ')}"
         else:
-            summary = f"{summary} {target}"
+            summary: str = f"{summary} {target}"
 
         # Only state that it is a save or a check if it is not a macro
         if target in self.stats or target in self.skills:
             if modifiers["save"]:
-                summary = f"{summary} save"
+                summary: str = f"{summary} save"
             else:
-                summary = f"{summary} check"
+                summary: str = f"{summary} check"
 
         # Include wether advantage or disadvantage was used
         mods_str = " with"
         if modifiers["mode"] == "a":
-            mods_str = f"{mods_str} advantage plus"
+            mods_str: str = f"{mods_str} advantage plus"
         if modifiers["mode"] == "ta":
-            mods_str = f"{mods_str} triple advantage plus"
+            mods_str: str = f"{mods_str} triple advantage plus"
         elif modifiers["mode"] == "d":
-            mods_str = f"{mods_str} disadvantage plus"
+            mods_str: str = f"{mods_str} disadvantage plus"
 
         # Add other modifiers that are being applied
         for var in modifiers["vars"]:
-            mods_str = f"{mods_str} {var} plus"
+            mods_str: str = f"{mods_str} {var} plus"
 
         return f"{summary}{mods_str[:-5]}"
 
     async def _get_stat_fullname(self, stat: str) -> str:
+        """Convert a stat abbreviation to its full name.
+
+        Args:
+            stat: The stat abbreviation (str, dex, con, int, wis, cha).
+
+        Returns:
+            The full name of the stat.
+        """
         if stat == "str":
             stat = "strength"
 
@@ -768,6 +993,14 @@ class DNDRoller(discord.Client):
         return stat
 
     async def _get_stat_shortname(self, stat: str) -> str:
+        """Convert a stat full name to its abbreviation.
+
+        Args:
+            stat: The stat full name.
+
+        Returns:
+            The abbreviated form of the stat.
+        """
         if stat == "strength":
             stat = "str"
 
@@ -789,6 +1022,12 @@ class DNDRoller(discord.Client):
         return stat
 
     async def _create_empty_character(self) -> dict:
+        """Create a default character template.
+
+        Returns:
+            A dictionary representing a basic character with default stats
+            and empty proficiency/skill lists.
+        """
         return {
             "level": -7,  # 0 Prof Bonus
             "stats": {
@@ -814,5 +1053,5 @@ class DNDRoller(discord.Client):
 
 intents = discord.Intents.default()
 intents.message_content = True
-client = DNDRoller(intents)
+client: DNDRoller = DNDRoller(intents)
 client.run(config["Discord"]["Token"])
