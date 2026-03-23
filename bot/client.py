@@ -111,6 +111,9 @@ class DNDRollerClient(discord.Client):
         if not message.content.startswith("!"):
             return
 
+        if message.author.id == self.user.id:
+            return
+
         try:
             guild_id = str(message.guild.id) if message.guild else "None"
             author_id = str(message.author.id)
