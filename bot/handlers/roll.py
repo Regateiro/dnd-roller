@@ -110,8 +110,11 @@ class RollHandler:
         Returns:
             The resolved roll expression string.
         """
-        formula = fields[2]
         try:
+            # First try to resolve as a direct dice expression (e.g., "2d6+3")
             formula = await self._roll_service.resolve_references(character, fields[2])
-        finally:
+            d20.roll(formula)  # Validate the formula
+            return formula
+        except d20.RollSyntaxError:
+            # If it's not valid dice notation, treat it as a character roll target
             return await self._roll_service.get_character_roll(character, formula, modifiers)
