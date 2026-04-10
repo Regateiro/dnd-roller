@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from bot.commands import CHARACTER_COMMAND_ALIASES, CHARACTER_UPDATE_ALIASES, HELP_ALIASES, resolve_command_alias
-from models import (
+from bot.models import (
     SKILL_TO_STAT,
     SKILLS,
     STAT_FULL_NAMES,
@@ -15,7 +15,7 @@ from models import (
     User,
 )
 from str2bool import str2bool
-from utils import strings
+from bot.utils import strings
 
 if TYPE_CHECKING:
     import discord
@@ -38,7 +38,7 @@ class CharacterHandler:
             "wisdom": "wis",
         }
 
-    async def handle(self, message: Message, guild_data: GuildData, user: User, fields: list) -> None:
+    async def handle(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle character management commands."""
         if len(fields) == 1 or fields[1] in HELP_ALIASES:
             await message.channel.send(strings.CHAR_HELP)
@@ -62,7 +62,7 @@ class CharacterHandler:
             response = await handler(user, fields)
             await message.channel.send(response)
 
-    async def _create_character(self, user: User, fields: list) -> str:
+    async def _create_character(self, user: User, fields: list[str]) -> str:
         """Create a new character."""
         try:
             name = fields[2]
@@ -93,11 +93,11 @@ class CharacterHandler:
 
     def _parse_proficiency_list(
         self,
-        fields: list,
+        fields: list[str],
         idx: int,
         valid_items: list[str],
-        transform: callable,
-        append_fn: callable,
+        transform: Callable[..., str],
+        append_fn: Callable[[str], None],
     ) -> int:
         """Parse a list of proficiency items until the next delimiter."""
         while fields[idx] != "|":
@@ -109,13 +109,13 @@ class CharacterHandler:
             idx += 1
         return idx + 1
 
-    async def _delete_character(self, user: User, fields: list) -> str:
+    async def _delete_character(self, user: User, fields: list[str]) -> str:
         """Delete a character."""
         if user.characters.pop(fields[2], None):
             return f"Removed character {fields[2].capitalize()}. You may need to set a new active character."
         return "No such character exists for you."
 
-    async def _update_character(self, user: User, fields: list) -> str:
+    async def _update_character(self, user: User, fields: list[str]) -> str:
         """Update various aspects of a character."""
         if fields[2] not in user.characters:
             return "No such character exists for you."
@@ -144,7 +144,7 @@ class CharacterHandler:
         handler = handler_info[0]
         return await handler(character, fields, *handler_info[1:])
 
-    async def _update_main(self, character: Character, fields: list, idx: int) -> str:
+    async def _update_main(self, character: Character, fields: list[str], idx: int) -> str:
         """Update main character stats."""
         character.level = int(fields[idx])
         character.stats = {
@@ -157,7 +157,7 @@ class CharacterHandler:
         }
         return "Character main stats updated."
 
-    async def _update_saves(self, character: Character, fields: list, idx: int) -> str:
+    async def _update_saves(self, character: Character, fields: list[str], idx: int) -> str:
         """Update saving throw proficiencies."""
         return await self._update_proficiency_list(
             character.save_prof,
@@ -168,7 +168,7 @@ class CharacterHandler:
             "stat",
         )
 
-    async def _update_skill_list(self, character: Character, fields: list, idx: int, attr: str) -> str:
+    async def _update_skill_list(self, character: Character, fields: list[str], idx: int, attr: str) -> str:
         """Update a skill proficiency list."""
         prof_list = getattr(character, attr)
         return await self._update_proficiency_list(
@@ -182,11 +182,11 @@ class CharacterHandler:
 
     async def _update_proficiency_list(
         self,
-        prof_list: list,
-        fields: list,
+        prof_list: list[str],
+        fields: list[str],
         idx: int,
         valid_items: list[str],
-        transform: callable,
+        transform: Callable[..., str],
         item_type: str,
     ) -> str:
         """Generic method to update a proficiency list."""
@@ -200,7 +200,7 @@ class CharacterHandler:
             idx += 1
         return f"Character {item_type}s updated."
 
-    async def _update_bonus(self, character: Character, fields: list, idx: int) -> str:
+    async def _update_bonus(self, character: Character, fields: list[str], idx: int) -> str:
         """Update ability and skill bonuses."""
         if len(fields) == 6:
             character.ability_bonus = int(fields[idx])
@@ -213,7 +213,7 @@ class CharacterHandler:
             return "Error: Wrong number of arguments. Expected general save and check bonus."
         return "Character bonuses updated."
 
-    async def _update_advantage(self, character: Character, fields: list, idx: int) -> str:
+    async def _update_advantage(self, character: Character, fields: list[str], idx: int) -> str:
         """Update advantage conditions."""
         character.advantage.clear()
         while idx < len(fields):
@@ -225,7 +225,7 @@ class CharacterHandler:
             idx += 1
         return "Character advantage updated."
 
-    async def _set_active_character(self, user: User, fields: list) -> str:
+    async def _set_active_character(self, user: User, fields: list[str]) -> str:
         """Set or display active character."""
         if len(fields) == 2:
             return f"You current active character is {user.active.capitalize()}."
@@ -234,7 +234,7 @@ class CharacterHandler:
             return f"{fields[2].capitalize()} set as the active character."
         return "No such character exists for you."
 
-    async def _get_character_info(self, user: User, fields: list) -> str:
+    async def _get_character_info(self, user: User, fields: list[str]) -> str:
         """Get formatted character information."""
         name = fields[2] if len(fields) > 2 and fields[2] in user.characters else user.active
         character = user.characters[name]
@@ -274,7 +274,7 @@ class CharacterHandler:
         lines.append("```")
         return "\n".join(lines)
 
-    async def _list_characters(self, user: User, fields: list) -> str:
+    async def _list_characters(self, user: User, fields: list[str]) -> str:
         """List all user characters."""
         characters = [c.capitalize() for c in user.characters.keys()]
         return f"Your characters are: {characters}."

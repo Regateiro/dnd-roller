@@ -4,13 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import discord
-    from bot.services.session import SessionService
-    from bot.services.roll import RollService
-    from models import GuildData, User
+from typing import Callable
 
 
 class RollMode(str, Enum):

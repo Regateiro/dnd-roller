@@ -6,8 +6,8 @@ import math
 from typing import TYPE_CHECKING
 
 from bot.commands import HELP_ALIASES, MACRO_COMMAND_ALIASES, VARIABLE_COMMAND_ALIASES, resolve_command_alias
-from models import GuildData, User
-from utils import strings
+from bot.models import GuildData, User
+from bot.utils import strings
 
 if TYPE_CHECKING:
     import discord
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class UtilityHandler:
     """Handler for utility commands (distance, fall, help, macro, variable)."""
 
-    async def handle_distance(self, message: Message, guild_data: GuildData, user: User, fields: list) -> None:
+    async def handle_distance(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle distance calculation commands."""
         if len(fields) != 4:
             await message.channel.send("Received wrong number of arguments, please check the help command for instructions.")
@@ -41,7 +41,7 @@ class UtilityHandler:
         else:
             await message.channel.send("I need to know the length of two sides to calculate the third, I'm not a wizard...")
 
-    async def handle_fall(self, message: Message, guild_data: GuildData, user: User, fields: list) -> None:
+    async def handle_fall(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle fall damage commands."""
         if len(fields) != 2:
             await message.channel.send("Received wrong number of arguments, please check the help command for instructions.")
@@ -55,13 +55,13 @@ class UtilityHandler:
         rounds = round(time_fall / 6, 2)
         await message.channel.send(f"Falling from `{height}ft` high will take `{time_fall}s` to hit the ground, or `{rounds}` rounds.")
 
-    async def handle_help(self, message: Message, guild_data: GuildData, user: User, fields: list) -> None:
+    async def handle_help(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle help commands."""
         await message.channel.send(strings.HELP_MSG_1)
         await message.channel.send(strings.HELP_MSG_2)
         await message.channel.send(strings.SESSION_HELP)
 
-    async def handle_macro(self, message: Message, guild_data: GuildData, user: User, fields: list) -> None:
+    async def handle_macro(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle macro commands."""
         if len(fields) == 1 or fields[1] in HELP_ALIASES:
             await message.channel.send(strings.VARS_HELP)
@@ -83,7 +83,7 @@ class UtilityHandler:
         if handler:
             await message.channel.send(handler())
 
-    async def handle_variable(self, message: Message, guild_data: GuildData, user: User, fields: list) -> None:
+    async def handle_variable(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle variable commands."""
         if len(fields) == 1 or fields[1] in HELP_ALIASES:
             await message.channel.send(strings.VARS_HELP)
@@ -115,39 +115,39 @@ class UtilityHandler:
 
         return fields
 
-    def _set_macro(self, user: User, fields: list) -> str:
+    def _set_macro(self, user: User, fields: list[str]) -> str:
         """Set a macro for a character."""
         character = user.characters[fields[2]]
         character.macros[fields[3]] = fields[4]
         return f"Added macro {fields[3]} to {fields[2].capitalize()}."
 
-    def _delete_macro(self, user: User, fields: list) -> str:
+    def _delete_macro(self, user: User, fields: list[str]) -> str:
         """Delete a macro from a character."""
         character = user.characters[fields[2]]
         if character.macros.pop(fields[3], None):
             return f"Removed macro {fields[3]} from {fields[2].capitalize()}."
         return f"No such macro exists on {fields[2].capitalize()}."
 
-    def _get_macros(self, user: User, fields: list) -> str:
+    def _get_macros(self, user: User, fields: list[str]) -> str:
         """Get all macros for a character."""
         character = user.characters[fields[2]]
         macros = [f"{m}[{character.macros[m]}]" for m in character.macros.keys()]
         return f"{fields[2].capitalize()} has the following macros: {macros}."
 
-    def _set_variable(self, user: User, fields: list) -> str:
+    def _set_variable(self, user: User, fields: list[str]) -> str:
         """Set a variable for a character."""
         character = user.characters[fields[2]]
         character.variables[fields[3]] = fields[4]
         return f"Added variable {fields[3]} to {fields[2].capitalize()}."
 
-    def _delete_variable(self, user: User, fields: list) -> str:
+    def _delete_variable(self, user: User, fields: list[str]) -> str:
         """Delete a variable from a character."""
         character = user.characters[fields[2]]
         if character.variables.pop(fields[3], None):
             return f"Removed variable {fields[3]} from {fields[2].capitalize()}."
         return f"No such variable exists on {fields[2].capitalize()}."
 
-    def _get_variables(self, user: User, fields: list) -> str:
+    def _get_variables(self, user: User, fields: list[str]) -> str:
         """Get all variables for a character."""
         character = user.characters[fields[2]]
         variables = [f"{v}[{character.variables[v]}]" for v in character.variables.keys()]

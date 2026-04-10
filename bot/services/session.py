@@ -10,7 +10,7 @@ from dateutil.parser import parse
 import calendar
 
 if TYPE_CHECKING:
-    from models import GuildData, User
+    from bot.models import GuildData, User
 
 
 class SessionService:
@@ -41,11 +41,7 @@ class SessionService:
 
     def get_missing_players(self, date: str, guild_data: GuildData) -> list[str]:
         """Get list of missing players for a given date."""
-        return [
-            guild_data.users[u].name
-            for u in guild_data.users.keys()
-            if date in guild_data.users[u].unavailability
-        ]
+        return [guild_data.users[u].name for u in guild_data.users.keys() if date in guild_data.users[u].unavailability]
 
     def get_upcoming_sessions(self, guild_data: GuildData, count: int = 4) -> list[tuple[str, list[str]]]:
         """Get upcoming sessions with missing players."""

@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 import d20
 
 from bot.commands import RollMode, get_roll_mode
-from models import (
+from bot.models import (
     SKILL_TO_STAT,
     SKILLS,
     STAT_FULL_NAMES,

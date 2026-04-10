@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 import discord
 
 from bot.handlers import CharacterHandler, RollHandler, SessionHandler, UtilityHandler
+from bot.models import Cache, GuildData, User
 from bot.services import RollService, SessionService
-from models import Cache, GuildData, User
 
 if TYPE_CHECKING:
     from discord import Message

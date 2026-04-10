@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import d20
 
 from bot.services.roll import RollService, RollModifiers
-from models import Character, GuildData, User
+from bot.models import Character, GuildData, User
 
 if TYPE_CHECKING:
     import discord
@@ -20,7 +20,7 @@ class RollHandler:
     def __init__(self, roll_service: RollService) -> None:
         self._roll_service = roll_service
 
-    async def handle(self, message: Message, guild_data: GuildData, user: User, fields: list) -> None:
+    async def handle(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle dice roll commands."""
         fields = self._prepare_fields(fields, user)
         character = self._get_character(fields, user)
@@ -50,7 +50,12 @@ class RollHandler:
                 character = user.characters.get(fields[1])
         return character or Character.empty()
 
-    async def _resolve_roll_expression(self, fields: list[str], character: Character, modifiers: RollModifiers) -> str:
+    async def _resolve_roll_expression(
+        self,
+        fields: list[str],
+        character: Character,
+        modifiers: RollModifiers,
+    ) -> str:
         """Resolve the roll expression, handling direct dice rolls vs character rolls."""
         try:
             return await self._roll_service.resolve_references(character, fields[2])
