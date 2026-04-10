@@ -43,21 +43,21 @@ class RollService:
 
         for stat in self.stats:
             stat_enum = Stat(stat)
-            value = value.replace(f"{stat}_mod", str(character.get_stat_mod(stat_enum)))
-            value = value.replace(f"{stat}", str(character.stats[stat_enum]))
+            value = value.replace(f"${stat}_mod", str(character.get_stat_mod(stat_enum)))
+            value = value.replace(f"${stat}", str(character.stats[stat_enum]))
 
         for skill in self.skills:
             mod, _ = character.get_skill_mod(skill)
-            value = value.replace(f"{skill}", str(mod))
+            value = value.replace(f"${skill}", str(mod))
 
         for var in character.variables.keys():
-            value = value.replace(f"{var}", str(character.variables[var]))
+            value = value.replace(f"${var}", str(character.variables[var]))
 
         return value
 
     async def get_character_roll(self, character: Character, target: str, modifiers: RollModifiers) -> str:
         """Generate a dice roll expression for a character."""
-        stat_enum = Stat(target) if target in self.stats else SKILL_TO_STAT.get(target, Stat.WISDOM)
+        stat_enum = Stat(target) if target in self.stats else SKILL_TO_STAT.get(target, None)
 
         if target in character.macros:
             roll = await self.resolve_references(character, character.macros[target])
