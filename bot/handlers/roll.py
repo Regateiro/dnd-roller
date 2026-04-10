@@ -77,6 +77,7 @@ class RollHandler:
     ) -> str:
         """Resolve the roll expression, handling direct dice rolls vs character rolls."""
         try:
-            return await self._roll_service.resolve_references(character, fields[2])
+            resolved_expr = await self._roll_service.resolve_references(character, fields[2])
+            return await self._roll_service.get_character_roll(character, resolved_expr, modifiers)
         except d20.RollError:
             return await self._roll_service.get_character_roll(character, fields[2], modifiers)
