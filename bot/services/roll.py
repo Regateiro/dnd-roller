@@ -84,23 +84,15 @@ class RollService:
 
         Returns:
             A dice roll expression string (e.g., "2d20kh1+5").
-
-        Raises:
-            InvalidStatError: If target is not a valid stat or skill.
-            InvalidSkillError: If target is not a valid skill.
         """
         stat_enum = Stat(target) if target in self.stats else SKILL_TO_STAT.get(target, None)
-
-        if stat_enum is None and target not in character.macros:
-            from bot.exceptions import InvalidStatError
-
-            raise InvalidStatError(target)
 
         if target in character.macros:
             roll = await self.resolve_references(character, character.macros[target])
         else:
             roll = "1d20"
-            roll = f"{roll}+{character.get_stat_mod(stat_enum)}"
+            if stat_enum is not None:
+                roll = f"{roll}+{character.get_stat_mod(stat_enum)}"
 
             if (modifiers.save and character.is_save_proficient(stat_enum)) or target in character.skill_prof:
                 roll = f"{roll}+{character.get_prof_mod()}"
