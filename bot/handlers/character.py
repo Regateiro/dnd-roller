@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Callable
 
 from str2bool import str2bool
@@ -11,6 +12,11 @@ from bot.commands import (
     CHARACTER_UPDATE_ALIASES,
     HELP_ALIASES,
     resolve_command_alias,
+)
+from bot.exceptions import (
+    InvalidCharacterDataError,
+    InvalidSkillError,
+    InvalidStatError,
 )
 from bot.models import (
     SKILL_TO_STAT,
@@ -27,10 +33,14 @@ if TYPE_CHECKING:
     from discord import Message
 
 
+logger = logging.getLogger(__name__)
+
+
 class CharacterHandler:
     """Handler for character management commands (!character, !char, !c)."""
 
     def __init__(self) -> None:
+        """Initialize the character handler."""
         self.stats: list[str] = Stat.all()
         self.skills: list[str] = SKILLS
         self._stat_short_map = {
@@ -44,7 +54,31 @@ class CharacterHandler:
         }
 
     async def handle(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
-        """Handle character management commands."""
+        """Handle character management commands.
+
+        Args:
+            message: The Discord message that triggered the command.
+            guild_data: The guild data for the server.
+            user: The user who sent the command.
+            fields: The command fields parsed from the message.
+        """
+        try:
+            await self._handle_internal(message, user, fields)
+        except InvalidStatError as ex:
+            await message.channel.send(f"Invalid stat: {ex.stat}. Use a valid ability score.")
+        except InvalidSkillError as ex:
+            await message.channel.send(f"Invalid skill: {ex.skill}. Use a valid skill name.")
+        except InvalidCharacterDataError as ex:
+            await message.channel.send(str(ex))
+        except ValueError as ex:
+            logger.exception("Value error in character handler: %s", ex)
+            await message.channel.send(f"Invalid input: {ex}. Use !help for correct format.")
+        except Exception as ex:
+            logger.exception("Unexpected error in character handler: %s", ex)
+            await message.channel.send("An unexpected error occurred. Please try again.")
+
+    async def _handle_internal(self, message: Message, user: User, fields: list[str]) -> None:
+        """Internal handler that throws specific exceptions."""
         if len(fields) == 1 or fields[1] in HELP_ALIASES:
             await message.channel.send(strings.CHAR_HELP)
             return
@@ -68,7 +102,25 @@ class CharacterHandler:
             await message.channel.send(response)
 
     async def _create_character(self, user: User, fields: list[str]) -> str:
-        """Create a new character."""
+        """Create a new character.
+
+        Args:
+            user: The user creating the character.
+            fields: The command fields containing character data.
+
+        Returns:
+            A message indicating success or failure.
+
+        Raises:
+            InvalidCharacterDataError: If the character data is invalid.
+            ValueError: If required fields are missing or malformed.
+        """
+        if len(fields) < 10:
+            raise InvalidCharacterDataError("Missing required fields for character creation. Use !help for format.")
+
+        if fields[2] in user.characters:
+            raise InvalidCharacterDataError(f"Character '{fields[2]}' already exists.")
+
         try:
             name = fields[2]
             character = Character(
@@ -93,8 +145,8 @@ class CharacterHandler:
             user.characters[name] = character
             user.active = name
             return f"Character {name} created and set as default."
-        except Exception:
-            return "Could not create the character, use !help for help."
+        except (ValueError, AssertionError) as e:
+            raise InvalidCharacterDataError(f"Invalid character data: {e}. Use !help for correct format.") from e
 
     def _parse_proficiency_list(
         self,
@@ -104,24 +156,57 @@ class CharacterHandler:
         transform: Callable[..., str],
         append_fn: Callable[[str], None],
     ) -> int:
-        """Parse a list of proficiency items until the next delimiter."""
+        """Parse a list of proficiency items until the next delimiter.
+
+        Args:
+            fields: The command fields.
+            idx: Current index in fields.
+            valid_items: List of valid item names.
+            transform: Function to transform valid item names.
+            append_fn: Function to append parsed items.
+
+        Returns:
+            The updated index after parsing.
+
+        Raises:
+            InvalidStatError: If an invalid stat is encountered.
+            InvalidSkillError: If an invalid skill is encountered.
+        """
         while fields[idx] != "|":
             item = fields[idx]
             if item in valid_items:
                 append_fn(transform(item))
             else:
-                raise ValueError(f"unknown item: {item}")
+                if item in self.stats:
+                    raise InvalidStatError(item)
+                raise InvalidSkillError(item)
             idx += 1
         return idx + 1
 
     async def _delete_character(self, user: User, fields: list[str]) -> str:
-        """Delete a character."""
+        """Delete a character.
+
+        Args:
+            user: The user deleting the character.
+            fields: The command fields.
+
+        Returns:
+            A message indicating success or that the character doesn't exist.
+        """
         if user.characters.pop(fields[2], None):
             return f"Removed character {fields[2].capitalize()}. You may need to set a new active character."
         return "No such character exists for you."
 
     async def _update_character(self, user: User, fields: list[str]) -> str:
-        """Update various aspects of a character."""
+        """Update various aspects of a character.
+
+        Args:
+            user: The user updating the character.
+            fields: The command fields.
+
+        Returns:
+            A message indicating success or the error.
+        """
         if fields[2] not in user.characters:
             return "No such character exists for you."
 
@@ -150,7 +235,16 @@ class CharacterHandler:
         return await handler(character, fields, *handler_info[1:])
 
     async def _update_main(self, character: Character, fields: list[str], idx: int) -> str:
-        """Update main character stats."""
+        """Update main character stats.
+
+        Args:
+            character: The character to update.
+            fields: The command fields.
+            idx: The starting index for the new values.
+
+        Returns:
+            A message indicating success.
+        """
         character.level = int(fields[idx])
         character.stats = {
             Stat.STRENGTH: int(fields[idx + 1]),
@@ -163,7 +257,16 @@ class CharacterHandler:
         return "Character main stats updated."
 
     async def _update_saves(self, character: Character, fields: list[str], idx: int) -> str:
-        """Update saving throw proficiencies."""
+        """Update saving throw proficiencies.
+
+        Args:
+            character: The character to update.
+            fields: The command fields.
+            idx: The starting index for the proficiency list.
+
+        Returns:
+            A message indicating success or error.
+        """
         return await self._update_proficiency_list(
             character.save_prof,
             fields,
@@ -174,7 +277,17 @@ class CharacterHandler:
         )
 
     async def _update_skill_list(self, character: Character, fields: list[str], idx: int, attr: str) -> str:
-        """Update a skill proficiency list."""
+        """Update a skill proficiency list.
+
+        Args:
+            character: The character to update.
+            fields: The command fields.
+            idx: The starting index for the proficiency list.
+            attr: The attribute name to update (skill_prof, skill_expertise, etc.).
+
+        Returns:
+            A message indicating success or error.
+        """
         prof_list = getattr(character, attr)
         return await self._update_proficiency_list(
             prof_list,
@@ -194,7 +307,19 @@ class CharacterHandler:
         transform: Callable[..., str],
         item_type: str,
     ) -> str:
-        """Generic method to update a proficiency list."""
+        """Generic method to update a proficiency list.
+
+        Args:
+            prof_list: The proficiency list to update.
+            fields: The command fields.
+            idx: The starting index.
+            valid_items: List of valid item names.
+            transform: Function to transform valid item names.
+            item_type: The type of item ("stat" or "skill").
+
+        Returns:
+            A message indicating success or error.
+        """
         prof_list.clear()
         while idx < len(fields):
             item = fields[idx]
@@ -206,7 +331,16 @@ class CharacterHandler:
         return f"Character {item_type}s updated."
 
     async def _update_bonus(self, character: Character, fields: list[str], idx: int) -> str:
-        """Update ability and skill bonuses."""
+        """Update ability and skill bonuses.
+
+        Args:
+            character: The character to update.
+            fields: The command fields.
+            idx: The starting index for the bonus values.
+
+        Returns:
+            A message indicating success or error.
+        """
         if len(fields) == 6:
             character.ability_bonus = int(fields[idx])
             character.skill_bonus = int(fields[idx + 1])
@@ -219,7 +353,16 @@ class CharacterHandler:
         return "Character bonuses updated."
 
     async def _update_advantage(self, character: Character, fields: list[str], idx: int) -> str:
-        """Update advantage conditions."""
+        """Update advantage conditions.
+
+        Args:
+            character: The character to update.
+            fields: The command fields.
+            idx: The starting index for the advantage list.
+
+        Returns:
+            A message indicating success or error.
+        """
         character.advantage.clear()
         while idx < len(fields):
             target = self._stat_short_map.get(fields[idx], fields[idx])
@@ -231,7 +374,15 @@ class CharacterHandler:
         return "Character advantage updated."
 
     async def _set_active_character(self, user: User, fields: list[str]) -> str:
-        """Set or display active character."""
+        """Set or display active character.
+
+        Args:
+            user: The user setting the active character.
+            fields: The command fields.
+
+        Returns:
+            A message indicating success or the current active character.
+        """
         if len(fields) == 2:
             return f"You current active character is {user.active.capitalize()}."
         if fields[2] in user.characters:
@@ -240,7 +391,15 @@ class CharacterHandler:
         return "No such character exists for you."
 
     async def _get_character_info(self, user: User, fields: list[str]) -> str:
-        """Get formatted character information."""
+        """Get formatted character information.
+
+        Args:
+            user: The user requesting character info.
+            fields: The command fields.
+
+        Returns:
+            A formatted string with character information.
+        """
         name = fields[2] if len(fields) > 2 and fields[2] in user.characters else user.active
         character = user.characters[name]
         prof_mod = character.get_prof_mod()
@@ -280,6 +439,14 @@ class CharacterHandler:
         return "\n".join(lines)
 
     async def _list_characters(self, user: User, fields: list[str]) -> str:
-        """List all user characters."""
+        """List all user characters.
+
+        Args:
+            user: The user listing their characters.
+            fields: The command fields.
+
+        Returns:
+            A message listing all characters.
+        """
         characters = [c.capitalize() for c in user.characters.keys()]
         return f"Your characters are: {characters}."

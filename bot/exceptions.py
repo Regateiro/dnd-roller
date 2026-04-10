@@ -49,6 +49,22 @@ class InvalidDateError(DNDRollerError):
         super().__init__(f"Invalid date: '{date_str}'")
 
 
+class InvalidCharacterDataError(DNDRollerError):
+    """Raised when character data is invalid or incomplete."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
+class InvalidSessionDateError(DNDRollerError):
+    """Raised when a session date is invalid (e.g., in the past)."""
+
+    def __init__(self, date_str: str, reason: str) -> None:
+        self.date_str = date_str
+        self.reason = reason
+        super().__init__(f"Invalid session date '{date_str}': {reason}")
+
+
 class SessionNotFoundError(DNDRollerError):
     """Raised when a session is not found."""
 

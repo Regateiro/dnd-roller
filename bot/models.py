@@ -198,6 +198,14 @@ class User:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> User:
+        """Create a User from a dictionary (for JSON deserialization).
+
+        Args:
+            data: Dictionary containing user data.
+
+        Returns:
+            A User instance.
+        """
         return cls(
             name=data["name"],
             characters={k: Character.from_dict(v) for k, v in data.get("characters", {}).items()},
@@ -206,6 +214,11 @@ class User:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        """Convert the User to a dictionary (for JSON serialization).
+
+        Returns:
+            A dictionary representation of the user.
+        """
         return {
             "name": self.name,
             "characters": {k: v.to_dict() for k, v in self.characters.items()},
@@ -224,6 +237,14 @@ class Session:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Session:
+        """Create a Session from a dictionary (for JSON deserialization).
+
+        Args:
+            data: Dictionary containing session data.
+
+        Returns:
+            A Session instance.
+        """
         return cls(
             on=data.get("on", []),
             off=data.get("off", []),
@@ -231,6 +252,11 @@ class Session:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        """Convert the Session to a dictionary (for JSON serialization).
+
+        Returns:
+            A dictionary representation of the session.
+        """
         return {
             "on": self.on,
             "off": self.off,
@@ -247,12 +273,25 @@ class GuildData:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> GuildData:
+        """Create a GuildData from a dictionary (for JSON deserialization).
+
+        Args:
+            data: Dictionary containing guild data.
+
+        Returns:
+            A GuildData instance.
+        """
         return cls(
             users={k: User.from_dict(v) for k, v in data.get("users", {}).items()},
             sessions=Session.from_dict(data.get("sessions", {})),
         )
 
     def to_dict(self) -> dict[str, Any]:
+        """Convert the GuildData to a dictionary (for JSON serialization).
+
+        Returns:
+            A dictionary representation of the guild data.
+        """
         return {
             "users": {k: v.to_dict() for k, v in self.users.items()},
             "sessions": self.sessions.to_dict(),
@@ -267,17 +306,48 @@ class Cache:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Cache:
+        """Create a Cache from a dictionary (for JSON deserialization).
+
+        Args:
+            data: Dictionary containing cache data.
+
+        Returns:
+            A Cache instance.
+        """
         return cls(data={k: GuildData.from_dict(v) for k, v in data.items()})
 
     def to_dict(self) -> dict[str, Any]:
+        """Convert the Cache to a dictionary (for JSON serialization).
+
+        Returns:
+            A dictionary representation of the cache.
+        """
         return {k: v.to_dict() for k, v in self.data.items()}
 
     def get_or_create_guild(self, guild_id: str) -> GuildData:
+        """Get or create a GuildData for the given guild ID.
+
+        Args:
+            guild_id: The Discord guild ID.
+
+        Returns:
+            The GuildData for the guild.
+        """
         if guild_id not in self.data:
             self.data[guild_id] = GuildData()
         return self.data[guild_id]
 
     def get_or_create_user(self, guild_id: str, user_id: str, name: str) -> User:
+        """Get or create a User for the given guild and user ID.
+
+        Args:
+            guild_id: The Discord guild ID.
+            user_id: The Discord user ID.
+            name: The user's display name.
+
+        Returns:
+            The User instance.
+        """
         guild = self.get_or_create_guild(guild_id)
         if user_id not in guild.users:
             guild.users[user_id] = User(name=name)

@@ -33,11 +33,22 @@ class RollService:
     """Service for resolving dice rolls and character roll expressions."""
 
     def __init__(self) -> None:
+        """Initialize the roll service with available stats and skills."""
         self.stats: list[str] = Stat.all()
         self.skills: list[str] = SKILLS
 
     async def resolve_references(self, character: Character, value: str) -> str:
-        """Resolve variable and stat references in a string."""
+        """Resolve variable and stat references in a string.
+
+        Replaces placeholders like $str_mod, $acrobatics, $level with actual values.
+
+        Args:
+            character: The character to resolve references for.
+            value: The string containing references to resolve.
+
+        Returns:
+            The string with all references replaced by actual values.
+        """
         value = value.replace("$level", str(character.level))
         value = value.replace("$prof", str(character.get_prof_mod()))
 
@@ -55,9 +66,35 @@ class RollService:
 
         return value
 
-    async def get_character_roll(self, character: Character, target: str, modifiers: RollModifiers) -> str:
-        """Generate a dice roll expression for a character."""
+    async def get_character_roll(
+        self,
+        character: Character,
+        target: str,
+        modifiers: RollModifiers,
+    ) -> str:
+        """Generate a dice roll expression for a character.
+
+        Builds a roll expression based on the target (stat, skill, or macro) and
+        applies any modifiers like advantage, saving throws, or crits.
+
+        Args:
+            character: The character performing the roll.
+            target: The target for the roll (stat name, skill name, or macro name).
+            modifiers: Modifiers affecting the roll (advantage, save, crit, etc.).
+
+        Returns:
+            A dice roll expression string (e.g., "2d20kh1+5").
+
+        Raises:
+            InvalidStatError: If target is not a valid stat or skill.
+            InvalidSkillError: If target is not a valid skill.
+        """
         stat_enum = Stat(target) if target in self.stats else SKILL_TO_STAT.get(target, None)
+
+        if stat_enum is None and target not in character.macros:
+            from bot.exceptions import InvalidStatError
+
+            raise InvalidStatError(target)
 
         if target in character.macros:
             roll = await self.resolve_references(character, character.macros[target])
@@ -95,7 +132,17 @@ class RollService:
         return roll
 
     def generate_summary(self, character: str, target: str, modifiers: RollModifiers, macros: dict[str, str]) -> str:
-        """Generate a human-readable summary of a roll."""
+        """Generate a human-readable summary of a roll.
+
+        Args:
+            character: The name of the character rolling.
+            target: The target of the roll (stat, skill, or macro name).
+            modifiers: The modifiers applied to the roll.
+            macros: The character's macro definitions.
+
+        Returns:
+            A human-readable summary string describing the roll.
+        """
         summary = f"{character.capitalize()} rolled"
 
         if target in macros:
@@ -127,7 +174,15 @@ class RollService:
         return summary
 
     def parse_modifiers(self, fields: list[str], character: Character) -> RollModifiers:
-        """Parse roll modifiers from command fields."""
+        """Parse roll modifiers from command fields.
+
+        Args:
+            fields: The command fields containing modifiers.
+            character: The character performing the roll.
+
+        Returns:
+            A RollModifiers object with parsed modifiers.
+        """
         modifiers = RollModifiers()
 
         for f in fields:
@@ -145,7 +200,14 @@ class RollService:
         return modifiers
 
     def get_skill_stat(self, skill: str) -> str:
-        """Get the ability stat associated with a skill."""
+        """Get the ability stat associated with a skill.
+
+        Args:
+            skill: The skill name to look up.
+
+        Returns:
+            The short stat name associated with the skill (e.g., "str", "dex").
+        """
         skill_groups = {
             "int": ("int", "intelligence", "arcana", "history", "investigation", "nature", "religion"),
             "cha": ("cha", "charisma", "deception", "intimidation", "performance", "persuasion"),
@@ -159,6 +221,13 @@ class RollService:
         return "wis"
 
     def is_ability_stat(self, skill: str) -> bool:
-        """Check if a string represents an ability stat."""
+        """Check if a string represents an ability stat.
+
+        Args:
+            skill: The string to check.
+
+        Returns:
+            True if the string is an ability stat name, False otherwise.
+        """
         ability_stats = {"int", "intelligence", "cha", "charisma", "dex", "dexterity", "str", "strength", "con", "constitution", "wis", "wisdom"}
         return skill in ability_stats
