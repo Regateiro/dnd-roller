@@ -123,7 +123,6 @@ class TestSessionService:
         assert datestr is not None
         assert isinstance(missing, list)
 
-    @pytest.mark.skip(reason="Service has infinite loop bug when no sessions configured")
     def test_get_next_session_no_sessions(self) -> None:
         """Test getting next session when none configured."""
         guild_data = GuildData()
