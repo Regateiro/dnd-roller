@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from bot.models import (
+    SKILL_TO_STAT,
     Cache,
     Character,
     GuildData,
     ProficiencyLevel,
     Session,
-    SKILL_TO_STAT,
     Stat,
     User,
 )

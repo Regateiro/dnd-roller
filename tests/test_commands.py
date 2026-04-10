@@ -226,6 +226,7 @@ class TestCommandHandler:
 
     def test_command_handler_creation(self) -> None:
         """Test CommandHandler stores handler and aliases."""
+
         def dummy_handler():
             pass
 
@@ -383,5 +384,3 @@ class TestCommandRegistryGetHandler:
         )
         handler = registry.get_handler("!unknown")
         assert handler is None
-
-

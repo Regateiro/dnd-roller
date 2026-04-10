@@ -139,8 +139,17 @@ class DNDRollerClient(discord.Client):
         fields: list[str],
     ) -> None:
         """Dispatch command to the appropriate handler."""
+        logging.debug(
+            "dispatch_command: command=%s, fields=%s, user.active='%s', user_characters=%s",
+            command,
+            fields,
+            user.active,
+            list(user.characters.keys()),
+        )
+
         handler_name = self._COMMANDS.get(command)
         if handler_name is None:
+            logging.debug("Unknown command: %s", command)
             return
 
         handler_obj = self._handlers.get(handler_name)
