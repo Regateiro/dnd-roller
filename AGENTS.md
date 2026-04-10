@@ -21,10 +21,11 @@ Runs: black (150), flake8 (150), isort (black profile), pylint (errors-only, 150
 
 ## Testing
 
-No tests currently exist. Add with pytest:
 ```bash
-poetry run pytest path/to/test_file.py
+make test
 ```
+
+Runs: pytest with coverage.
 
 ## Project Structure
 

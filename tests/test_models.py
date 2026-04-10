@@ -262,3 +262,37 @@ class TestCacheRoundtrip:
         dict_data = original.to_dict()
         restored = Cache.from_dict(dict_data)
         assert "guild1" in restored.data
+
+
+class TestCacheGetOrCreate:
+    """Tests for Cache get_or_create methods."""
+
+    def test_get_or_create_guild_new(self) -> None:
+        """Test creating a new guild."""
+        cache = Cache()
+        cache.get_or_create_guild("new_guild")
+        assert "new_guild" in cache.data
+
+    def test_get_or_create_guild_existing(self) -> None:
+        """Test getting an existing guild."""
+        cache = Cache()
+        guild1 = cache.get_or_create_guild("guild1")
+        guild2 = cache.get_or_create_guild("guild1")
+        assert guild1 is guild2
+
+    def test_get_or_create_user_new(self) -> None:
+        """Test creating a new user."""
+        cache = Cache()
+        cache.get_or_create_guild("guild1")
+        user = cache.get_or_create_user("guild1", "user123", "TestUser")
+        assert user.name == "TestUser"
+        assert "user123" in cache.data["guild1"].users
+
+    def test_get_or_create_user_existing(self) -> None:
+        """Test getting an existing user."""
+        cache = Cache()
+        cache.get_or_create_guild("guild1")
+        user1 = cache.get_or_create_user("guild1", "user123", "TestUser")
+        user2 = cache.get_or_create_user("guild1", "user123", "NewName")
+        # User exists, so name is not updated (gets existing user)
+        assert user1 is user2

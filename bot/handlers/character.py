@@ -16,7 +16,6 @@ from bot.commands import (
 from bot.exceptions import (
     InvalidCharacterDataError,
     InvalidSkillError,
-    InvalidStatError,
 )
 from bot.models import (
     SKILL_TO_STAT,
@@ -64,8 +63,6 @@ class CharacterHandler:
         """
         try:
             await self._handle_internal(message, user, fields)
-        except InvalidStatError as ex:
-            await message.channel.send(f"Invalid stat: {ex.stat}. Use a valid ability score.")
         except InvalidSkillError as ex:
             await message.channel.send(f"Invalid skill: {ex.skill}. Use a valid skill name.")
         except InvalidCharacterDataError as ex:
@@ -169,7 +166,6 @@ class CharacterHandler:
             The updated index after parsing.
 
         Raises:
-            InvalidStatError: If an invalid stat is encountered.
             InvalidSkillError: If an invalid skill is encountered.
         """
         while fields[idx] != "|":
@@ -177,8 +173,6 @@ class CharacterHandler:
             if item in valid_items:
                 append_fn(transform(item))
             else:
-                if item in self.stats:
-                    raise InvalidStatError(item)
                 raise InvalidSkillError(item)
             idx += 1
         return idx + 1

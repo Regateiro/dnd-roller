@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-import pytest
-
 from bot.models import GuildData, User
 from bot.services.session import SessionService
 

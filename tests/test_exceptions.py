@@ -7,8 +7,10 @@ import pytest
 from bot.exceptions import (
     CharacterNotFoundError,
     DNDRollerError,
+    InvalidCharacterDataError,
     InvalidDateError,
     InvalidRollExpressionError,
+    InvalidSessionDateError,
     InvalidSkillError,
     InvalidStatError,
     SessionNotFoundError,
@@ -142,3 +144,38 @@ class TestSessionNotFoundError:
         """Test that the exception can be caught."""
         with pytest.raises(SessionNotFoundError):
             raise SessionNotFoundError("2024-01-01")
+
+
+class TestInvalidCharacterDataError:
+    """Tests for the InvalidCharacterDataError exception."""
+
+    def test_message(self) -> None:
+        """Test the exception message."""
+        error = InvalidCharacterDataError("Missing required fields")
+        assert "Missing required fields" in str(error)
+
+    def test_can_be_caught(self) -> None:
+        """Test that the exception can be caught."""
+        with pytest.raises(InvalidCharacterDataError):
+            raise InvalidCharacterDataError("test error")
+
+
+class TestInvalidSessionDateError:
+    """Tests for the InvalidSessionDateError exception."""
+
+    def test_message(self) -> None:
+        """Test the exception message includes date and reason."""
+        error = InvalidSessionDateError("2024-01-01", "Date is in the past")
+        assert "2024-01-01" in str(error)
+        assert "past" in str(error).lower()
+
+    def test_attributes(self) -> None:
+        """Test the date_str and reason attributes are stored."""
+        error = InvalidSessionDateError("2024-01-01", "Date is in the past")
+        assert error.date_str == "2024-01-01"
+        assert error.reason == "Date is in the past"
+
+    def test_can_be_caught(self) -> None:
+        """Test that the exception can be caught."""
+        with pytest.raises(InvalidSessionDateError):
+            raise InvalidSessionDateError("2024-01-01", "test reason")

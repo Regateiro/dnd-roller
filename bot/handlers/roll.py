@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import d20
 
-from bot.exceptions import DNDRollerError, InvalidRollExpressionError, InvalidStatError
+from bot.exceptions import DNDRollerError
 from bot.models import Character, GuildData, User
 from bot.services.roll import RollModifiers, RollService
 
@@ -47,10 +47,6 @@ class RollHandler:
             summary = self._roll_service.generate_summary(fields[1], fields[2], modifiers, character.macros)
 
             await message.channel.send(f"{summary}:\n{str(roll)}")
-        except InvalidStatError as ex:
-            await message.channel.send(f"Invalid target: {ex.stat}. Use a valid stat or skill name.")
-        except InvalidRollExpressionError as ex:
-            await message.channel.send(f"Invalid roll expression: {ex.expression}")
         except d20.RollSyntaxError as ex:
             await message.channel.send(f"Invalid dice notation: {ex}")
         except DNDRollerError as ex:
@@ -88,10 +84,8 @@ class RollHandler:
             The Character object, or an empty character if none found.
         """
         character = user.characters.get(fields[1])
-        if character is None:
-            if user.active in user.characters:
-                fields = fields[:1] + [user.active] + fields[1:]
-                character = user.characters.get(fields[1])
+        if character is None and user.active in user.characters:
+            character = user.active
         return character or Character.empty()
 
     async def _resolve_roll_expression(

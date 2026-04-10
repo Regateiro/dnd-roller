@@ -158,17 +158,16 @@ class UtilityHandler:
             return
 
         try:
-            handlers = {
+            handler = {
                 "set": lambda: self._set_variable(user, fields),
                 "delete": lambda: self._delete_variable(user, fields),
                 "list": lambda: self._get_variables(user, fields),
-            }
+            }.get(command, None)
 
-            handler = handlers.get(command)
             if handler:
                 await message.channel.send(handler())
-        except IndexError:
-            await message.channel.send("Missing required arguments. Use !help for correct format.")
+            else:
+                await message.channel.send("Unknown variable command. Use !help for correct format.")
         except Exception as ex:
             logger.exception("Error in variable handler: %s", ex)
             await message.channel.send("An error occurred while managing variables.")

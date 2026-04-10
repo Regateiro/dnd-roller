@@ -134,9 +134,9 @@ class SessionHandler:
         elif date.weekday() == guild_data.sessions.wday:
             if datestr not in guild_data.sessions.off:
                 guild_data.sessions.off.append(datestr)
-                await message.channel.send("Sunday session cancelled.")
+                await message.channel.send("Session cancelled.")
             else:
-                await message.channel.send("This Sunday session was already cancelled.")
+                await message.channel.send("This session was already cancelled.")
         else:
             await message.channel.send("Could not find an extra session scheduled for that date.")
 
