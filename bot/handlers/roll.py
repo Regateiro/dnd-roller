@@ -7,11 +7,10 @@ from typing import TYPE_CHECKING
 
 import d20
 
-from bot.services.roll import RollService, RollModifiers
 from bot.models import Character, GuildData, User
+from bot.services.roll import RollModifiers, RollService
 
 if TYPE_CHECKING:
-    import discord
     from discord import Message
 
 
@@ -26,7 +25,7 @@ class RollHandler:
 
     async def handle(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle dice roll commands."""
-        logger.debug(f"handle called: fields=%s, user.active='%s', user.characters=%s", fields, user.active, list(user.characters.keys()))
+        logger.debug("handle called: fields=%s, user.active='%s', user.characters=%s", fields, user.active, list(user.characters.keys()))
 
         try:
             fields = self._prepare_fields(fields, user)

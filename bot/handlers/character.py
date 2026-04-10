@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
-from bot.commands import CHARACTER_COMMAND_ALIASES, CHARACTER_UPDATE_ALIASES, HELP_ALIASES, resolve_command_alias
+from str2bool import str2bool
+
+from bot.commands import (
+    CHARACTER_COMMAND_ALIASES,
+    CHARACTER_UPDATE_ALIASES,
+    HELP_ALIASES,
+    resolve_command_alias,
+)
 from bot.models import (
     SKILL_TO_STAT,
     SKILLS,
@@ -14,11 +21,9 @@ from bot.models import (
     Stat,
     User,
 )
-from str2bool import str2bool
 from bot.utils import strings
 
 if TYPE_CHECKING:
-    import discord
     from discord import Message
 
 

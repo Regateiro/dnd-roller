@@ -5,12 +5,16 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING
 
-from bot.commands import HELP_ALIASES, MACRO_COMMAND_ALIASES, VARIABLE_COMMAND_ALIASES, resolve_command_alias
+from bot.commands import (
+    HELP_ALIASES,
+    MACRO_COMMAND_ALIASES,
+    VARIABLE_COMMAND_ALIASES,
+    resolve_command_alias,
+)
 from bot.models import GuildData, User
 from bot.utils import strings
 
 if TYPE_CHECKING:
-    import discord
     from discord import Message
 
 

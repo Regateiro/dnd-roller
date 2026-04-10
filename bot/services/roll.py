@@ -5,8 +5,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-import d20
-
 from bot.commands import RollMode, get_roll_mode
 from bot.models import (
     SKILL_TO_STAT,
@@ -129,17 +127,17 @@ class RollService:
         """Parse roll modifiers from command fields."""
         modifiers = RollModifiers()
 
-        for field in fields:
-            if field in ("save", "s"):
+        for f in fields:
+            if f in ("save", "s"):
                 modifiers.save = True
-            elif field in ("crit", "critical"):
+            elif f in ("crit", "critical"):
                 modifiers.crit = True
             else:
-                mode = get_roll_mode(field)
+                mode = get_roll_mode(f)
                 if mode:
                     modifiers.mode = mode
-                elif field in character.variables:
-                    modifiers.vars.append(field)
+                elif f in character.variables:
+                    modifiers.vars.append(f)
 
         return modifiers
 

@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING
 
 from dateutil.parser import parse
 
-import calendar
-
 if TYPE_CHECKING:
     from bot.models import GuildData, User
 

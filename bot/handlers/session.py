@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
+import calendar  # noqa: F401
 from typing import TYPE_CHECKING
 
-import calendar
-
-from bot.commands import SESSION_COMMAND_ALIASES, HELP_ALIASES, resolve_command_alias
-from bot.services.session import SessionService
+from bot.commands import HELP_ALIASES, SESSION_COMMAND_ALIASES, resolve_command_alias
 from bot.models import GuildData, User
+from bot.services.session import SessionService
 from bot.utils import strings
 
 if TYPE_CHECKING:
-    import discord
     from discord import Message
 
 
