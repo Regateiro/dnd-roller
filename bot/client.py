@@ -24,9 +24,6 @@ logging.basicConfig(
     format="%(asctime)s : %(name)s : %(levelname)s : %(message)s",
 )
 
-logger = logging.getLogger("dnd-roller")
-logger.setLevel(logging.DEBUG)
-
 config = configparser.ConfigParser()
 config.read(f"{os.getenv('HOME')}/.config/dnd-roller/config.ini")
 

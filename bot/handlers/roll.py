@@ -25,26 +25,26 @@ class RollHandler:
 
     async def handle(self, message: Message, guild_data: GuildData, user: User, fields: list[str]) -> None:
         """Handle dice roll commands."""
-        logger.debug("handle called: fields=%s, user.active='%s', user.characters=%s", fields, user.active, list(user.characters.keys()))
+        logger.info("handle called: fields=%s, user.active='%s', user.characters=%s", fields, user.active, list(user.characters.keys()))
 
         try:
             fields = self._prepare_fields(fields, user)
-            logger.debug("after _prepare_fields: fields=%s", fields)
+            logger.info("after _prepare_fields: fields=%s", fields)
 
             character = self._get_character(fields, user)
-            logger.debug("got character: %s", character)
+            logger.info("got character: %s", character)
 
             modifiers = self._roll_service.parse_modifiers(fields[3:], character)
-            logger.debug("modifiers: %s", modifiers)
+            logger.info("modifiers: %s", modifiers)
 
             roll_expr = await self._resolve_roll_expression(fields, character, modifiers)
-            logger.debug("resolved roll_expr: %s", roll_expr)
+            logger.info("resolved roll_expr: %s", roll_expr)
 
             roll = d20.roll(roll_expr)
-            logger.debug("roll result: %s", roll)
+            logger.info("roll result: %s", roll)
 
             summary = self._roll_service.generate_summary(fields[1], fields[2], modifiers, character.macros)
-            logger.debug("summary: %s", summary)
+            logger.info("summary: %s", summary)
 
             await message.channel.send(f"{summary}:\n{str(roll)}")
         except Exception as ex:
