@@ -55,8 +55,10 @@ class SessionService:
     def get_next_session(self, guild_data: GuildData) -> tuple[str, list[str]] | None:
         """Get the next scheduled session with missing players."""
         date = datetime.now()
-        while True:
+        limit = date + timedelta(days=30)
+        while date <= limit:
             datestr = self.format_date(date)
             if self.is_session_day(date, guild_data):
                 return (datestr, self.get_missing_players(datestr, guild_data))
             date += timedelta(days=1)
+        return None
