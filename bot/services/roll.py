@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 
@@ -14,6 +15,8 @@ from bot.models import (
     Character,
     Stat,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -43,9 +46,12 @@ class RollService:
             value = value.replace(f"${stat}_mod", str(character.get_stat_mod(stat_enum)))
             value = value.replace(f"${stat}", str(character.stats[stat_enum]))
 
+        logger.debug("after resolving stats: value=%s", value)
         for skill in self.skills:
+            logger.debug("resolving skill reference: %s", skill)
             mod, _ = character.get_skill_mod(skill)
             value = value.replace(f"${skill}", str(mod))
+        logger.debug("after resolving skill %s: value=%s", skill, value)
 
         for var in character.variables.keys():
             value = value.replace(f"${var}", str(character.variables[var]))
