@@ -43,18 +43,15 @@ class RollService:
 
         for stat in self.stats:
             stat_enum = Stat(stat)
-            value = value.replace(f"${stat}_mod", str(character.get_stat_mod(stat_enum)))
-            value = value.replace(f"${stat}", str(character.stats[stat_enum]))
+            value = value.replace(f"{stat}_mod", str(character.get_stat_mod(stat_enum)))
+            value = value.replace(f"{stat}", str(character.stats[stat_enum]))
 
-        logger.debug("after resolving stats: value=%s", value)
         for skill in self.skills:
-            logger.debug("resolving skill reference: %s", skill)
             mod, _ = character.get_skill_mod(skill)
-            value = value.replace(f"${skill}", str(mod))
-        logger.debug("after resolving skill %s: value=%s", skill, value)
+            value = value.replace(f"{skill}", str(mod))
 
         for var in character.variables.keys():
-            value = value.replace(f"${var}", str(character.variables[var]))
+            value = value.replace(f"{var}", str(character.variables[var]))
 
         return value
 
