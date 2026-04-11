@@ -44,13 +44,16 @@ def guild_data():
 
 @pytest.fixture
 def user_with_character():
-    """Create a user with a character."""
+    """Create a user with a character and pre-populated unavailability."""
     user = User(name="testuser")
     user.active = "grog"
     user.characters["grog"] = Character(
         level=5,
         stats={s: 10 for s in Stat},
     )
+    # Pre-populate unavailability for future dates (2027+ to avoid clean_sessions)
+    # These dates are Mondays
+    user.unavailability = ["2027-06-08", "2027-06-15", "2027-06-22"]
     return user
 
 
@@ -406,7 +409,7 @@ class TestSessionHandlerBranchesExtra:
     async def test_cancel_regular_session_already_off(self, mock_message, guild_data, user_with_character, session_handler) -> None:
         """Test canceling a regular session that is already in the off list."""
         guild_data.sessions.wday = 0  # Monday
-        future_date = "2025-06-02"  # Monday
+        future_date = "2027-06-07"  # Monday (far enough in future to avoid clean_sessions)
 
         # Set up: NOT in on list, IS in off list
         guild_data.sessions.off = [future_date]
@@ -417,7 +420,8 @@ class TestSessionHandlerBranchesExtra:
         await session_handler.handle(mock_message, guild_data, user_with_character, fields)
 
         # Should hit the case where it's a regular session day, already in off list
-        assert len(mock_message.channel._sent_messages) > 0
+        msg = mock_message.channel._sent_messages[0].lower()
+        assert "already cancelled" in msg, f"Expected 'already cancelled' but got: {msg}"
 
     @pytest.mark.asyncio
     async def test_schedule_adds_and_removes_from_off(self, mock_message, guild_data, user_with_character, session_handler) -> None:
@@ -450,7 +454,7 @@ class TestSessionHandlerBranchesExtra:
     async def test_available_user_already_available(self, mock_message, guild_data, user_with_character, session_handler) -> None:
         """Test available when user was already available (not in unavailability)."""
         guild_data.sessions.wday = 0  # Monday
-        future_date = "2025-06-23"  # Monday
+        future_date = "2027-06-07"  # Monday (future to avoid clean_sessions)
         # User is NOT in unavailability list
         assert future_date not in user_with_character.unavailability
         fields = ["!session", "available", future_date]
@@ -461,10 +465,24 @@ class TestSessionHandlerBranchesExtra:
         assert "glad" in msg or "couldn't" in msg
 
     @pytest.mark.asyncio
+    async def test_available_user_set_available(self, mock_message, guild_data, user_with_character, session_handler) -> None:
+        """Test available when user was previously unavailable (they had date in unavailability)."""
+        guild_data.sessions.wday = 0  # Monday
+        # First schedule a session for that date so it's recognized as a session day
+        future_date = "2027-06-08"  # Monday
+        guild_data.sessions.on.append(future_date)
+        fields = ["!session", "available", future_date]
+
+        await session_handler.handle(mock_message, guild_data, user_with_character, fields)
+
+        msg = mock_message.channel._sent_messages[0].lower()
+        assert "glad" in msg
+
+    @pytest.mark.asyncio
     async def test_unavailable_user_already_unavailable(self, mock_message, guild_data, user_with_character, session_handler) -> None:
         """Test unavailable when user was already unavailable."""
         guild_data.sessions.wday = 0  # Monday
-        future_date = "2025-06-30"  # Monday
+        future_date = "2027-06-14"  # Monday (future to avoid clean_sessions)
         user_with_character.unavailability.append(future_date)
         assert future_date in user_with_character.unavailability
         fields = ["!session", "unavailable", future_date]
@@ -473,6 +491,20 @@ class TestSessionHandlerBranchesExtra:
 
         msg = mock_message.channel._sent_messages[0].lower()
         assert "know" in msg or "we know" in msg
+
+    @pytest.mark.asyncio
+    async def test_unavailable_user_set_unavailable(self, mock_message, guild_data, user_with_character, session_handler) -> None:
+        """Test setting user unavailable for a date not in their unavailability list."""
+        guild_data.sessions.wday = 0  # Monday
+        # First schedule a session for that date so it's recognized as a session day
+        future_date = "2027-06-21"  # Monday
+        guild_data.sessions.on.append(future_date)
+        fields = ["!session", "unavailable", future_date]
+
+        await session_handler.handle(mock_message, guild_data, user_with_character, fields)
+
+        msg = mock_message.channel._sent_messages[0].lower()
+        assert "try not to kill" in msg
 
     @pytest.mark.asyncio
     async def test_schedule_remove_extra_from_off(self, mock_message, guild_data, user_with_character, session_handler) -> None:

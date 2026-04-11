@@ -119,19 +119,19 @@ class UtilityHandler:
         fields = self._prepare_fields(fields, user)
 
         command = resolve_command_alias(MACRO_COMMAND_ALIASES, fields[1])
-        if command is None:
-            return
 
         try:
-            handlers = {
-                "set": lambda: self._set_macro(user, fields),
-                "delete": lambda: self._delete_macro(user, fields),
-                "list": lambda: self._get_macros(user, fields),
+            handler_map = {
+                "set": self._set_macro,
+                "delete": self._delete_macro,
+                "list": self._get_macros,
             }
 
-            handler = handlers.get(command)
+            handler = handler_map.get(command, None)
             if handler:
-                await message.channel.send(handler())
+                await message.channel.send(handler(user, fields))
+            else:
+                await message.channel.send("Unknown macro command. Use !help for correct format.")
         except IndexError:
             await message.channel.send("Missing required arguments. Use !help for correct format.")
         except Exception as ex:
@@ -154,16 +154,15 @@ class UtilityHandler:
         fields = self._prepare_fields(fields, user)
 
         command = resolve_command_alias(VARIABLE_COMMAND_ALIASES, fields[1])
-        if command is None:
-            return
 
         try:
-            handler = {
+            handler_map = {
                 "set": lambda: self._set_variable(user, fields),
                 "delete": lambda: self._delete_variable(user, fields),
                 "list": lambda: self._get_variables(user, fields),
-            }.get(command, None)
+            }
 
+            handler = handler_map.get(command, None)
             if handler:
                 await message.channel.send(handler())
             else:

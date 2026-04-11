@@ -288,8 +288,10 @@ class TestUtilityHandlerErrorPaths:
 
         await utility_handler.handle_macro(mock_message, guild_data, user_with_character, fields)
 
-        # Unknown command returns early, no message sent
-        assert len(mock_message.channel._sent_messages) == 0
+        # Unknown command returns error message
+        assert len(mock_message.channel._sent_messages) > 0
+        msg = mock_message.channel._sent_messages[0].lower()
+        assert "unknown" in msg
 
     @pytest.mark.asyncio
     async def test_handle_macro_missing_args(self, mock_message, guild_data, user_with_character, utility_handler) -> None:
@@ -309,8 +311,10 @@ class TestUtilityHandlerErrorPaths:
 
         await utility_handler.handle_variable(mock_message, guild_data, user_with_character, fields)
 
-        # Unknown command returns early, no message sent
-        assert len(mock_message.channel._sent_messages) == 0
+        # Unknown command returns error message
+        assert len(mock_message.channel._sent_messages) > 0
+        msg = mock_message.channel._sent_messages[0].lower()
+        assert "unknown" in msg
 
     @pytest.mark.asyncio
     async def test_handle_macro_error_exception(self, mock_message, guild_data, user_with_character, utility_handler) -> None:

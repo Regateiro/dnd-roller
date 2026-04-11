@@ -7,4 +7,4 @@ lint:
 	poetry run pylint --errors-only --max-line-length 150 ./bot/**/*.py ./bot/*.py dnd_roller.py
 
 test:
-	poetry run pytest --cov=bot
+	poetry run pytest --cov=bot -v

@@ -274,3 +274,15 @@ class TestRollHandlerErrorPaths:
             assert len(mock_message.channel._sent_messages) > 0
             msg = mock_message.channel._sent_messages[0].lower()
             assert "unexpected error" in msg
+
+
+@pytest.mark.asyncio
+async def test_get_character_fallback_to_active_standalone():
+    """Test _get_character fallback to active character without full handler setup."""
+    handler = RollHandler(RollService())
+    user = User(name="test")
+    user.active = "grog"
+    user.characters["grog"] = Character(level=5, stats={s: 10 for s in Stat})
+    fields = ["!r", "missing_char", "1d20"]
+    result = handler._get_character(fields, user)
+    assert result == user.characters["grog"]
