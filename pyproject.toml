@@ -23,19 +23,10 @@ pytest-cov = "^7.1.0"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+addopts = "-W ignore::Warning"
 
 [tool.coverage.run]
 omit = ["*/tests/*", "*/bot/client.py"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import calendar  # noqa: F401
+import calendar
 import logging
 from typing import TYPE_CHECKING
 

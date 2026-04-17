@@ -403,15 +403,54 @@ class TestCharacterHandlerUpdate:
         assert "no such character" in msg
 
     @pytest.mark.asyncio
-    async def test_update_unknown_type(self, mock_message, guild_data, user_with_character, character_handler) -> None:
-        """Test updating with unknown update type."""
-        fields = ["!character", "update", "grog", "unknown_type", "5", "10", "10", "10", "10", "10", "10"]
+    async def test_update_unknown_type(self, mock_message, guild_data, user_with_character, character_handler, monkeypatch) -> None:
+        """Test updating with update type not in handler dict."""
+        from bot.commands import CHARACTER_UPDATE_ALIASES
+        # Add an alias that maps to a command NOT in update_handlers
+        monkeypatch.setitem(CHARACTER_UPDATE_ALIASES, "missing_handler", ("missing",))
+        fields = ["!character", "update", "grog", "missing"]
 
         await character_handler.handle(mock_message, guild_data, user_with_character, fields)
 
         assert len(mock_message.channel._sent_messages) > 0
         msg = mock_message.channel._sent_messages[0].lower()
         assert "unknown update type" in msg
+
+    @pytest.mark.asyncio
+    async def test_create_character_invalid_skill(self, mock_message, guild_data, user_with_character, character_handler) -> None:
+        """Test creating a character with an invalid skill raises error."""
+        user_no_chars = User(name="test_no_char")
+        fields = [
+            "!character", "create", "badguy", "3",
+            "10", "12", "14", "12", "10", "8",
+            "|", "invalid_stat", "|"
+        ]
+
+        await character_handler.handle(mock_message, guild_data, user_no_chars, fields)
+        assert len(mock_message.channel._sent_messages) > 0
+        sent = mock_message.channel._sent_messages[0]
+        assert "Invalid skill:" in sent
+        assert "invalid_stat" in sent
+
+    @pytest.mark.asyncio
+    async def test_update_bonus_with_jack_of_all_trades(self, mock_message, guild_data, user_with_character, character_handler) -> None:
+        """Test updating bonus with jack_of_all_trades parameter."""
+        fields = ["!character", "update", "grog", "bonus", "2", "1", "true"]
+        await character_handler.handle(mock_message, guild_data, user_with_character, fields)
+
+        assert len(mock_message.channel._sent_messages) > 0
+        assert user_with_character.characters["grog"].jack_of_all_trades is True
+
+    @pytest.mark.asyncio
+    async def test_update_skills_success_no_trailing_delimiter(self, mock_message, guild_data, user_with_character, character_handler) -> None:
+        """Test updating skills without a trailing delimiter succeeds."""
+        fields = ["!character", "update", "grog", "skills", "athletics", "perception"]
+        await character_handler.handle(mock_message, guild_data, user_with_character, fields)
+
+        assert len(mock_message.channel._sent_messages) > 0
+        sent = mock_message.channel._sent_messages[0]
+        assert "updated" in sent.lower()
+        assert set(user_with_character.characters["grog"].skill_prof) == {"athletics", "perception"}
 
     @pytest.mark.asyncio
     async def test_update_advantage_unknown_skill(self, mock_message, guild_data, user_with_character, character_handler) -> None:

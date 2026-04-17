@@ -208,8 +208,6 @@ class CharacterHandler:
         idx = 4
 
         command = resolve_command_alias(CHARACTER_UPDATE_ALIASES, fields[3])
-        if command is None:
-            return f"Unknown update type: {fields[3]}"
 
         update_handlers = {
             "main": (self._update_main, idx),
@@ -221,7 +219,7 @@ class CharacterHandler:
             "advantage": (self._update_advantage, idx),
         }
 
-        handler_info = update_handlers.get(command)
+        handler_info = update_handlers.get(command, None)
         if handler_info is None:
             return f"Unknown update type: {fields[3]}"
 

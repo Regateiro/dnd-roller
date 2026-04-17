@@ -83,9 +83,10 @@ class RollHandler:
         Returns:
             The Character object, or an empty character if none found.
         """
-        character = user.characters.get(fields[1])
+        character_name = fields[1]
+        character = user.characters.get(character_name)
         if character is None and user.active in user.characters:
-            character = user.active
+            character = user.characters.get(user.active)
         return character or Character.empty()
 
     async def _resolve_roll_expression(
